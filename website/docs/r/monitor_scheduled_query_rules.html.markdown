@@ -118,7 +118,6 @@ The following arguments are supported:
 * `action` - (Required) An `action` block as defined below.
 * `action_type` - (Required) Must equal ether `AlertingAction` or `LogToMetricAction`.
 * `authorized_resources` - (Optional) List of Resource IDs referred into query.
-* `custom_webhook_payload` - (Optional) Custom payload to be sent for all webhook URI in Azure action group
 * `data_source_id` - (Required) The resource uri over which log search query is to be run.
 * `description` - (Optional) The description of the Scheduled Query Rule.
 * `enabled` - (Optional) Whether this scheduled query rule is enabled.  Default is `true`.
@@ -129,20 +128,60 @@ The following arguments are supported:
 
 ---
 
-* `action` supports the following:
+`action` supports the following if `action_type` is `AlertingAction`:
 
 * `azns_action` - (Required) An `azns_action` block as defined below.
 * `severity` - (Optional) Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
 * `throttling` - (Optional) Time (in minutes) for which Alerts should be throttled or suppressed.
-* `trigger` - (Optional) The trigger condition that results in the alert rule being run.
+* `trigger` - (Required) The condition that results in the alert rule being run.
+
+---
+
+`action` supports the following if `action_type` is `LogToMetricAction`:
+
+* `criteria` - (Required) A `criteria` block as defined below.
+* `metric_name` - (Required) Name of the metric.
 
 ---
 
 * `azns_action` supports the following:
 
-* `action_group` - (Optional) List of 
-* `custom_webhook_payload` - (Optional) JSON payload included in webhooks.
+* `action_group` - (Optional) List of action group reference resource IDs.
+* `custom_webhook_payload` - (Optional) Custom payload to be sent for all webhook payloads in alerting action.
 * `email_subject` - (Optional) Custom subject override for all email ids in Azure action group.
+
+---
+
+`criteria` supports the following:
+
+* `dimension` - (Required) A `dimension` block as defined below.
+* `metric_name` - (Required) Name of the metric
+
+---
+
+`dimension` supports the following:
+
+* `name` - (Required) Name of the dimension.
+* `operator` - (Required) Operator for dimension values, - 'Exclude' or 'Include'.
+* `values` - (Required) List of dimension values.
+
+---
+
+`metricTrigger` supports the following:
+
+* `metricColumn` - (Required) Evaluation of metric on a particular column.
+* `metricTriggerType` - (Required) Metric Trigger Type - 'Consecutive' or 'Total'.
+* `operator` - (Required) Evaluation operation for rule - 'Equal', 'GreaterThan' or 'LessThan'.
+* `threshold` - (Required) The threshold of the metric trigger.
+
+---
+
+`trigger` supports the following:
+
+* `metricTrigger` - (Optional) A `metricTrigger` block as defined above. Trigger condition for metric query rule.
+* `operator` - (Required) Evaluation operation for rule - 'Equal', 'GreaterThan' or 'LessThan'.
+* `threshold` - (Required) Result or count threshold based on which rule should be triggered.
+
 
 ## Attributes Reference
 

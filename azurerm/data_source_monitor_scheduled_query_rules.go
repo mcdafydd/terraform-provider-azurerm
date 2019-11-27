@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 
+	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/azure"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
@@ -44,6 +45,39 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 								},
 							},
 						},
+						"criteria": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"dimension": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"name": {
+													Type:     schema.TypeList,
+													Computed: true,
+													Elem:     schema.TypeString,
+												},
+												"operator": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+												"values": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+											},
+										},
+									},
+									"metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
 						"severity": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -57,6 +91,31 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"metric_trigger": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"metric_column": {
+													Type:     schema.TypeList,
+													Computed: true,
+													Elem:     schema.TypeString,
+												},
+												"metric_trigger_type": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+												"operator": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+												"values": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+											},
+										},
+									},
 									"operator": {
 										Type:     schema.TypeString,
 										Computed: true,
@@ -124,15 +183,6 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 
 	d.SetId(*resp.ID)
 
-	switch *resp.Type {
-	case "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction":
-		d.Set("action_type", "AlertingAction")
-	case "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction":
-		d.Set("action_type", "LogToMetricAction")
-	default:
-		return fmt.Errorf("Error setting `action_type`: %+v", err)
-	}
-
 	// set required props for creation
 	d.Set("description", resp.Description)
 	d.Set("enabled", resp.Enabled)
@@ -141,7 +191,47 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	d.Set("last_updated_time", resp.LastUpdatedTime)
 	d.Set("provisioning_state", resp.ProvisioningState)
 
-	//optional props
+	if action, ok := resp.Action.(*insights.AlertingAction); ok {
+		if action.OdataType == "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction" {
+			d.Set("action_type", "AlertingAction")
+		}
+	}
+
+	if action, ok := resp.Action.(*insights.AlertingAction); ok {
+		if action.OdataType == "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction" {
+			d.Set("action_type", "LogToMetricAction")
+		}
+	}
+
+	if schedule := resp.Schedule; schedule != nil {
+		if schedule.FrequencyInMinutes != nil {
+			d.Set("frequency", *schedule.FrequencyInMinutes)
+		}
+		if schedule.TimeWindowInMinutes != nil {
+			d.Set("time_window", *schedule.TimeWindowInMinutes)
+		}
+	}
+
+	if source := resp.Source; source != nil {
+		if source.AuthorizedResources != nil {
+			d.Set("authorized_resources", *source.AuthorizedResources)
+		}
+		if source.DataSourceID != nil {
+			d.Set("data_source_id", *source.DataSourceID)
+		}
+		if source.Query != nil {
+			d.Set("query", *source.Query)
+		}
+		if source.QueryType != "ResultCount" {
+			return fmt.Errorf("Error setting `action`: %+v", err)
+		}
+		d.Set("query_type", source.QueryType)
+	}
+
+	if err := d.Set("action", flattenAzureRmScheduledQueryRulesAction(&resp.Action)); err != nil {
+		return fmt.Errorf("Error setting `action`: %+v", err)
+	}
+
 	if err := d.Set("schedule", flattenAzureRmScheduledQueryRulesSchedule(resp.Schedule)); err != nil {
 		return fmt.Errorf("Error setting `schedule`: %+v", err)
 	}

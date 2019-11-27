@@ -206,7 +206,7 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 			Description: utils.String(description),
 			Source:      source,
 			Schedule:    schedule,
-			Action:      insights.AlertingAction{}{},
+			Action:      insights.AlertingAction{},
 		},
 		Tags: expandedTags,
 	}
@@ -330,10 +330,7 @@ func expandMonitorScheduledQueryRulesCriteria(input []interface{}) *insights.Cri
 			Dimensions: &dimensions,
 		})
 	}
-	return &insights.MetricAlertSingleResourceMultipleMetricCriteria{
-		AllOf:     &criteria,
-		OdataType: insights.OdataTypeMicrosoftAzureMonitorSingleResourceMultipleMetricCriteria,
-	}
+	return &criteria
 }
 
 func expandMonitorScheduledQueryRulesSchedule(input []interface{}) (*insights.Schedule, error) {
@@ -380,6 +377,25 @@ func expandMonitorScheduledQueryRulesSource(input []interface{}) (*insights.Sour
 	return &insights.ScheduledQueryRulesActionList{
 		ActionGroups: &actions,
 	}
+}
+
+func flattenAzureRmScheduledQueryRulesAction(input *insights.BasicAction) []interface{} {
+	result := make(map[string]interface{})
+
+	if input == nil {
+		return []interface{}{}
+	}
+
+	switch input.OdataType {
+	case "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction":
+		result["action_type"] = "AlertingAction"
+	case "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction":
+		result["action_type"] = "LogToMetricAction"
+	default:
+		return fmt.Errorf("Invalid `action_type`: %+v", input.OdataType)
+	}
+
+	return []interface{}{result}
 }
 
 func flattenAzureRmScheduledQueryRulesSchedule(input *insights.Schedule) []interface{} {

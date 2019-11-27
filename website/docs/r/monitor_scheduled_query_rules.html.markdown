@@ -26,20 +26,86 @@ resource "azurerm_application_insights" "example" {
   application_type    = "web"
 }
 
+resource "azurerm_application_insights" "example2" {
+  name                = format("%s-insights2", var.prefix)
+  location            = var.location
+  resource_group_name = azurerm_resource_group.example.name
+  application_type    = "web"
+}
+
+# AlertingAction
 resource "azurerm_scheduled_query_rule" "example" {
   name                   = format("%s-queryrule", var.prefix)
   location               = azurerm_resource_group.example.location
   resource_group_name    = azurerm_resource_group.example.name
 
-  enabled                = true
-  description            = "Scheduled query rule example resource with log query and schedule"
-  frequency_in_minutes   = 5
-  time_window_in_minutes = 30
-  query                  = "requests | where status_code >= 500 | summarize AggregatedValue = count() by bin(TimeGenerated, 5m)"
+  action                 = {
+    "azns_action": {
+      "action_group": [],
+      "email_subject": "Email Header",
+      "custom_webhook_payload": "{}"
+    },
+    "severity": "1",
+    "trigger": {
+      "threshold_operator": "GreaterThan",
+      "threshold": 3
+    },
+  }
+  action_type            = "AlertingAction"
   data_source_id         = azurerm_application_insights.example.id
+  description            = "Scheduled query rule AlertingAction example"
+  enabled                = true
+  frequency              = 5
+  time_window            = 30
+}
+
+# AlertingAction Cross-Resource
+resource "azurerm_scheduled_query_rule" "example" {
+  name                   = format("%s-queryrule", var.prefix)
+  location               = azurerm_resource_group.example.location
+  resource_group_name    = azurerm_resource_group.example.name
+
+  action                 = {
+    "azns_action": {
+      "action_group": [],
+      "email_subject": "Email Header",
+      "custom_webhook_payload": "{}"
+    },
+    "severity": "1",
+    "trigger": {
+      "threshold_operator": "GreaterThan",
+      "threshold": 3
+    },
+  }
+  action_type            = "AlertingAction"
   authorized_resources   = [azurerm_application_insights.example.id]
+  data_source_id         = azurerm_application_insights.example.id
+  description            = "Scheduled query rule AlertingAction cross-resource example"
+  enabled                = true
+  frequency              = 5
+  query                  = "requests | where status_code >= 500 | summarize AggregatedValue = count() by bin(TimeGenerated, 5m)"
   query_type             = "ResultCount"
-  action                 = {}
+  time_window            = 30
+}
+
+# LogToMetricAction
+resource "azurerm_scheduled_query_rule" "example" {
+  name                   = format("%s-queryrule", var.prefix)
+  location               = azurerm_resource_group.example.location
+  resource_group_name    = azurerm_resource_group.example.name
+
+  action                 = {
+    "criteria": [
+      {
+        "metric_name": "Average_% Idle Time",
+        "dimensions": []
+      }
+    ],
+  }
+  action_type            = "AlertingAction"
+  data_source_id         = azurerm_application_insights.example.id
+  description            = "Scheduled query rule LogToMetric example"
+  enabled                = true
 }
 ```
 
@@ -49,21 +115,34 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the Action Group. Changing this forces a new resource to be created.
 * `resource_group_name` - (Required) The name of the resource group in which to create the Action Group instance.
-* `action_groups` - (Required) List of Action Group resource IDs.
-* `authorized_resources` - (Required) List of Resource IDs referred into query.
+* `action` - (Required) An `action` block as defined below.
+* `action_type` - (Required) Must equal ether `AlertingAction` or `LogToMetricAction`.
+* `authorized_resources` - (Optional) List of Resource IDs referred into query.
 * `custom_webhook_payload` - (Optional) Custom payload to be sent for all webhook URI in Azure action group
 * `data_source_id` - (Required) The resource uri over which log search query is to be run.
 * `description` - (Optional) The description of the Scheduled Query Rule.
-* `email_subject` - (Optional) Custom subject override for all email ids in Azure action group.
 * `enabled` - (Optional) Whether this scheduled query rule is enabled.  Default is `true`.
-* `frequency_in_minutes` - (Optional) Frequency (in minutes) at which rule condition should be evaluated.
+* `frequency` - (Optional) Frequency (in minutes) at which rule condition should be evaluated.
 * `query` - (Required) Log search query. Required for action type - `alerting_action`.
 * `query_type` - (Required) Must equal "ResultCount" for now.
+* `time_window` - (Optional) Time window for which data needs to be fetched for query (should be greater than or equal to frequency_in_minutes).
+
+---
+
+* `action` supports the following:
+
+* `azns_action` - (Required) An `azns_action` block as defined below.
 * `severity` - (Optional) Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
 * `throttling` - (Optional) Time (in minutes) for which Alerts should be throttled or suppressed.
-* `time_window_in_minutes` - (Optional) Time window for which data needs to be fetched for query (should be greater than or equal to frequency_in_minutes).
 * `trigger` - (Optional) The trigger condition that results in the alert rule being run.
-# FIXME: https://docs.microsoft.com/en-us/rest/api/monitor/scheduledqueryrules/createorupdate#triggercondition<Paste>
+
+---
+
+* `azns_action` supports the following:
+
+* `action_group` - (Optional) List of 
+* `custom_webhook_payload` - (Optional) JSON payload included in webhooks.
+* `email_subject` - (Optional) Custom subject override for all email ids in Azure action group.
 
 ## Attributes Reference
 

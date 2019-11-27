@@ -32,18 +32,50 @@ output "query_rule_id" {
 ## Attributes Reference
 
 * `id` - The ID of the Scheduled Query Rule.
-* `action_groups` - List of Action Group resource IDs.
+* `action` - An `action` block as defined below.
+* `action_type` - Must equal ether `AlertingAction` or `LogToMetricAction`.
 * `authorized_resources` - List of Resource IDs referred into query.
-* `custom_webhook_payload` - Custom payload to be sent for all webhook URI in Azure action group
+* `custom_webhook_payload` - Custom payload to be sent for all webhook URI in Azure action group.
 * `data_source_id` - The resource uri over which log search query is to be run.
 * `description` - The description of the Scheduled Query Rule.
 * `email_subject` - Custom subject override for all email ids in Azure action group.
 * `enabled` - Whether this scheduled query rule is enabled.
-* `frequency_in_minutes` - Frequency (in minutes) at which rule condition should be evaluated.
+* `frequency` - Frequency (in minutes) at which rule condition should be evaluated.
 * `query` - Log search query. Required for action type - `alerting_action`.
 * `query_type` - Must equal "ResultCount".
-* `severity` - Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
+* `time_window` - Time window for which data needs to be fetched for query (should be greater than or equal to frequency_in_minutes).
+
+---
+
+`action` supports the following if `action_type` is `AlertingAction`:
+
+* `azns_action` - An `azns_action` block as defined below.
 * `throttling` - Time (in minutes) for which Alerts should be throttled or suppressed.
-* `time_window_in_minutes` - Time window for which data needs to be fetched for query (should be greater than or equal to frequency_in_minutes).
-* `trigger` - The trigger condition that results in the alert rule being run
-# FIXME: https://docs.microsoft.com/en-us/rest/api/monitor/scheduledqueryrules/createorupdate#triggercondition<Paste>
+* `trigger` - The trigger condition that results in the alert rule being run.
+
+---
+
+`action` supports the following if `action_type` is `LogToMetricAction`:
+
+* `criteria` - A `criteria` block as defined below.
+
+---
+
+`azns_action` supports the following:
+
+* `custom_webhook_payload` - JSON payload included in webhooks.
+* `email_subject` - Email subject line.
+* `severity` - Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
+
+---
+
+`criteria` supports the following:
+
+* `dimension` - A `dimension` block as defined below.
+* `metric_name` - Name of the metric
+
+---
+
+`dimension` supports the following:
+
+# FIXME

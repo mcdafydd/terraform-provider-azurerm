@@ -182,16 +182,16 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
 
-		if err := d.Set("azns_action", flattenAzureRmScheduledQueryRulesAznsAction(action.AznsAction)); err != nil {
-			return fmt.Errorf("Error setting `azns_action`: %+v", err)
-		}
-		if err := d.Set("trigger", flattenAzureRmScheduledQueryRulesTrigger(action.Trigger)); err != nil {
+		flattenAzureRmScheduledQueryRulesAlertingAction(action)
+		if err := d.Set("trigger", flattenAzureRmScheduledQueryRulesAlertingAction(action.Trigger)); err != nil {
 			return fmt.Errorf("Error setting `trigger`: %+v", err)
 		}
 	}
 
 	if action, ok := resp.Action.(*insights.LogToMetricAction); ok {
 		d.Set("action_type", "LogToMetricAction")
+
+		flattenAzureRmScheduledQueryRulesAlertingAction(action)
 
 		if err := d.Set("criteria", flattenAzureRmScheduledQueryRulesCriteria(action.Criteria)); err != nil {
 			return fmt.Errorf("Error setting `criteria`: %+v", err)

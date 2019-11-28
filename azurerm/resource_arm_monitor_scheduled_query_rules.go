@@ -434,47 +434,19 @@ func flattenAzureRmScheduledQueryRulesSchedule(input *insights.Schedule) []inter
 func flattenAzureRmScheduledQueryRulesSource(input *insights.Source) []interface{} {
 	result := make(map[string]interface{})
 
-	if input == nil {
-		return []interface{}{}
+	if input.AuthorizedResources != nil {
+		d.Set("authorized_resources", *input.AuthorizedResources)
 	}
-
-	if input.Query != nil {
-		result["query"] = *input.Query
-	}
-
 	if input.DataSourceID != nil {
 		result["data_source_id"] = *input.DataSourceID
 	}
-
-	if input.QueryType != "" {
-		result["query_type"] = input.QueryType
+	if input.Query != nil {
+		result["query"] = *input.Query
 	}
-
-	if input.AuthorizedResources != nil {
-		resources := []string{}
-		for _, authorized := range *input.AuthorizedResources {
-			if authorized != "" {
-				resources = append(resources, authorized)
-			}
-		}
-		result["authorized_resources"] = resources
+	if input.QueryType != "ResultCount" {
+		return fmt.Errorf("Invalid setting for `query_type`: %+v", *input.QueryType)
 	}
+	result["query_type"] = input.QueryType
 
 	return []interface{}{result}
 }
-
-/*
-// LogSearchRule log Search Rule Definition
-type LogSearchRule struct {
-	// Description - The description of the Log Search rule.
-	Description *string `json:"description,omitempty"`
-	// Enabled - The flag which indicates whether the Log Search rule is enabled. Value should be true or false. Possible values include: 'True', 'False'
-	Enabled Enabled `json:"enabled,omitempty"`
-	// Source - Data Source against which rule will Query Data
-	Source *Source `json:"source,omitempty"`
-	// Schedule - Schedule (Frequency, Time Window) for rule. Required for action type - AlertingAction
-	Schedule *Schedule `json:"schedule,omitempty"`
-	// Action - Action needs to be taken on rule execution.
-	Action BasicAction `json:"action,omitempty"`
-}
-*/

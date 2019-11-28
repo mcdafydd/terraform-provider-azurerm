@@ -219,20 +219,6 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 		if err := d.Set("source", flattenAzureRmScheduledQueryRulesSource(resp.Source)); err != nil {
 			return fmt.Errorf("Error setting `source`: %+v", err)
 		}
-
-		if source.AuthorizedResources != nil {
-			d.Set("authorized_resources", *source.AuthorizedResources)
-		}
-		if source.DataSourceID != nil {
-			d.Set("data_source_id", *source.DataSourceID)
-		}
-		if source.Query != nil {
-			d.Set("query", *source.Query)
-		}
-		if source.QueryType != "ResultCount" {
-			return fmt.Errorf("Error setting `action`: %+v", err)
-		}
-		d.Set("query_type", source.QueryType)
 	}
 
 	// read-only props

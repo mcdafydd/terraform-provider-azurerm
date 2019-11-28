@@ -1,3 +1,3 @@
 ## Example: Azure Monitor Scheduled Query Rule
 
-This example provisions a Scheduled Query Rule, Application Insights resource, and an Action Group.
+This example provisions three Scheduled Query Rules, two Application Insights resources, and an Action Group.

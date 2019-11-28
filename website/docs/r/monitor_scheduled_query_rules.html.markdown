@@ -39,18 +39,17 @@ resource "azurerm_scheduled_query_rule" "example" {
   location               = azurerm_resource_group.example.location
   resource_group_name    = azurerm_resource_group.example.name
 
-  action                 = {
-    "azns_action": {
-      "action_group": [],
-      "email_subject": "Email Header",
-      "custom_webhook_payload": "{}"
-    },
-    "severity": "1",
-    "trigger": {
-      "threshold_operator": "GreaterThan",
-      "threshold": 3
-    },
+  "azns_action": {
+    "action_group": [],
+    "email_subject": "Email Header",
+    "custom_webhook_payload": "{}"
+  },
+  "severity": "1",
+  "trigger": {
+    "threshold_operator": "GreaterThan",
+    "threshold": 3
   }
+
   action_type            = "AlertingAction"
   data_source_id         = azurerm_application_insights.example.id
   description            = "Scheduled query rule AlertingAction example"
@@ -65,18 +64,17 @@ resource "azurerm_scheduled_query_rule" "example" {
   location               = azurerm_resource_group.example.location
   resource_group_name    = azurerm_resource_group.example.name
 
-  action                 = {
-    "azns_action": {
-      "action_group": [],
-      "email_subject": "Email Header",
-      "custom_webhook_payload": "{}"
-    },
-    "severity": "1",
-    "trigger": {
-      "threshold_operator": "GreaterThan",
-      "threshold": 3
-    },
+  "azns_action": {
+    "action_group": [],
+    "email_subject": "Email Header",
+    "custom_webhook_payload": "{}"
+  },
+  "severity": "1",
+  "trigger": {
+    "threshold_operator": "GreaterThan",
+    "threshold": 3
   }
+
   action_type            = "AlertingAction"
   authorized_resources   = [azurerm_application_insights.example.id]
   data_source_id         = azurerm_application_insights.example.id
@@ -94,15 +92,18 @@ resource "azurerm_scheduled_query_rule" "example" {
   location               = azurerm_resource_group.example.location
   resource_group_name    = azurerm_resource_group.example.name
 
-  action                 = {
-    "criteria": [
-      {
-        "metric_name": "Average_% Idle Time",
-        "dimensions": []
-      }
-    ],
-  }
-  action_type            = "AlertingAction"
+  "criteria": [
+    {
+      "metric_name": "Average_% Idle Time",
+      "dimensions": [{
+        name             = "dimension
+        operator         = "GreaterThan"
+        values           = ["latency"]
+      }]
+    }
+  ]
+
+  action_type            = "LogToMetricAction"
   data_source_id         = azurerm_application_insights.example.id
   description            = "Scheduled query rule LogToMetric example"
   enabled                = true
@@ -113,34 +114,30 @@ resource "azurerm_scheduled_query_rule" "example" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Action Group. Changing this forces a new resource to be created.
-* `resource_group_name` - (Required) The name of the resource group in which to create the Action Group instance.
-* `action` - (Required) An `action` block as defined below.
+* `name` - (Required) The name of the Scheduled Query Rule. Changing this forces a new resource to be created.
+* `resource_group_name` - (Required) The name of the resource group in which to create the Scheduled Query Rule instance.
 * `action_type` - (Required) Must equal ether `AlertingAction` or `LogToMetricAction`.
 * `authorized_resources` - (Optional) List of Resource IDs referred into query.
 * `data_source_id` - (Required) The resource uri over which log search query is to be run.
 * `description` - (Optional) The description of the Scheduled Query Rule.
 * `enabled` - (Optional) Whether this scheduled query rule is enabled.  Default is `true`.
-* `frequency` - (Optional) Frequency (in minutes) at which rule condition should be evaluated.
-* `query` - (Required) Log search query. Required for action type - `alerting_action`.
+
+* `query` - (Required) Log search query. Required when `action_type` is `AlertingAction`.
 * `query_type` - (Required) Must equal "ResultCount" for now.
-* `time_window` - (Optional) Time window for which data needs to be fetched for query (should be greater than or equal to frequency_in_minutes).
+Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
+* `throttling` - (Optional) Time (in minutes) for which Alerts should be throttled or suppressed.
 
----
-
-`action` supports the following if `action_type` is `AlertingAction`:
+The following arguments are only supported when `action_type` is `AlertingAction`:
 
 * `azns_action` - (Required) An `azns_action` block as defined below.
-* `severity` - (Optional) Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
-* `throttling` - (Optional) Time (in minutes) for which Alerts should be throttled or suppressed.
+* `frequency` - (Required) Frequency (in minutes) at which rule condition should be evaluated.
+* `severity` - (Optional) Severity of the alert.
+* `time_window` - (Required) Time window for which data needs to be fetched for query (should be greater than or equal to `frequency`).
 * `trigger` - (Required) The condition that results in the alert rule being run.
 
----
-
-`action` supports the following if `action_type` is `LogToMetricAction`:
+The following arguments are only supported when `action_type` is `LogToMetricAction`:
 
 * `criteria` - (Required) A `criteria` block as defined below.
-* `metric_name` - (Required) Name of the metric.
 
 ---
 
@@ -155,14 +152,14 @@ The following arguments are supported:
 `criteria` supports the following:
 
 * `dimension` - (Required) A `dimension` block as defined below.
-* `metric_name` - (Required) Name of the metric
+* `metric_name` - (Required) Name of the metric.
 
 ---
 
 `dimension` supports the following:
 
 * `name` - (Required) Name of the dimension.
-* `operator` - (Required) Operator for dimension values, - 'Exclude' or 'Include'.
+* `operator` - (Required) Operator for dimension values, - 'Include'.
 * `values` - (Required) List of dimension values.
 
 ---
@@ -181,7 +178,6 @@ The following arguments are supported:
 * `metricTrigger` - (Optional) A `metricTrigger` block as defined above. Trigger condition for metric query rule.
 * `operator` - (Required) Evaluation operation for rule - 'Equal', 'GreaterThan' or 'LessThan'.
 * `threshold` - (Required) Result or count threshold based on which rule should be triggered.
-
 
 ## Attributes Reference
 

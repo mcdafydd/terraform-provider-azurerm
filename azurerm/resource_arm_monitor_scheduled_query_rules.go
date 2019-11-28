@@ -178,14 +178,24 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 		}
 	}
 
-	enabled := d.Get("enabled").(insights.Enabled)
+	actionType := d.Get("action_type").(string)
 	description := d.Get("description").(string)
-	sourceRaw := d.Get("source").(*schema.Set).List()
-	scheduleRaw := d.Get("schedule").(*schema.Set).List()
+	enabled := d.Get("enabled").(insights.Enabled)
+
 	location := azure.NormalizeLocation(d.Get("location").(string))
 
-	source, _ := expandMonitorScheduledQueryRulesSource(sourceRaw)
-	schedule, _ := expandMonitorScheduledQueryRulesSchedule(scheduleRaw)
+	action := insights.BasicAction{}
+	switch actionType {
+	case "AlertingAction":
+		action = expandMonitorScheduledQueryRulesAlertingAction(d)
+	case "LogToMetricAction":
+		action = expandMonitorScheduledQueryRulesLogToMetricAction(d)
+	default:
+		return fmt.Errorf("Invalid action_type %q. Value must be either 'AlertingAction' or 'LogToMetricAction'", action_type)
+	}
+
+	source, _ := expandMonitorScheduledQueryRulesSource(d)
+	schedule, _ := expandMonitorScheduledQueryRulesSchedule(d)
 
 	t := d.Get("tags").(map[string]interface{})
 	expandedTags := tags.Expand(t)
@@ -193,11 +203,11 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 	parameters := insights.LogSearchRuleResource{
 		Location: utils.String(location),
 		LogSearchRule: &insights.LogSearchRule{
-			Enabled:     enabled,
 			Description: utils.String(description),
-			Source:      source,
-			Schedule:    schedule,
-			Action:      insights.AlertingAction{},
+			Enabled:     enabled,
+			Source:      &source,
+			Schedule:    &schedule,
+			Action:      action,
 		},
 		Tags: expandedTags,
 	}
@@ -274,31 +284,30 @@ func resourceArmMonitorScheduledQueryRulesDelete(d *schema.ResourceData, meta in
 	return nil
 }
 
-func expandMonitorScheduledQueryRulesAction(input []interface{}) *[]insights.AlertingAction {
-	actions := make([]insights.AlertingAction, 0)
-	for _, item := range input {
-		v := item.(map[string]interface{})
-		if agID := v["action_group_id"].(string); agID != "" {
-			props := make(map[string]*string)
-			if pVal, ok := v["azns_action"]; ok {
-				for pk, pv := range pVal.(map[string]interface{}) {
-					props[pk] = utils.String(pv.(string))
-				}
-			}
+func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *insights.AlertingAction {
+	aznsAction := d.Get("azns_action").(string).List()
+	severity := d.Get("severity").(string)
+	throttling := d.Get("throttling").(int)
+	trigger := d.Get("trigger").(*schema.Set).List()
 
-			/*			actions = append(actions, insights.AlertingAction{
-						ActionGroupID:   utils.String(agID),
-						AznsAction:      props,
-						Severity:        props,
-						ThrottlingInMin: props,
-						Trigger:         props,
-					})*/
-		}
+	action := insights.AlertingAction{
+		AznsAction: &aznsAction,
+		Severity: severity,
+		ThrottlingInMin: utils.Int(throttling),
+		Trigger: &trigger,
+		OdataType: insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,
 	}
-	return &actions
+
+	return &action
 }
 
-func expandMonitorScheduledQueryRulesCriteria(input []interface{}) *[]insights.Criteria {
+func expandMonitorScheduledQueryRulesCriteria(input []interface{}) (*[]insights.Criteria, error) {
+	actionType := d.Get("action_type").(string)
+
+	if actionType != "LogToMetricAction" {
+		return nil, fmt.Errorf("Criteria only supported if action_type is 'LogToMetricAction'")
+	}
+
 	criteria := make([]insights.Criteria, 0)
 	for _, item := range input {
 		v := item.(map[string]interface{})
@@ -321,14 +330,49 @@ func expandMonitorScheduledQueryRulesCriteria(input []interface{}) *[]insights.C
 	return &criteria
 }
 
-func expandMonitorScheduledQueryRulesSchedule(input []interface{}) (*insights.Schedule, error) {
-	schedule := insights.Schedule{}
-	return &schedule, nil
+func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) insights.LogToMetricAction {
+	criteria := d.Get("criteria").(string).List()
+
+	action := insights.LogToMetricAction{
+		Criteria: &criteria,
+		OdataType: insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction,
+	}
+
+	return &action
 }
 
-func expandMonitorScheduledQueryRulesSource(input []interface{}) (*insights.Source, error) {
-	source := insights.Source{}
-	return &source, nil
+func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.Schedule {
+	actionType := d.Get("action_type").(string)
+
+	if actionType != "AlertingAction" {
+		return nil, fmt.Errorf("'frequency' and 'time_window' only supported if action_type is 'AlertingAction'")
+	}
+
+	frequency := d.Get("frequency").(*schema.Set).List()
+	timeWindow := d.Get("time_window").(int)
+
+	schedule := insights.Schedule{
+		FrequencyInMin: utils.Int(frequency),
+		TimeWindowInMin: utils.Int(timeWindow),
+	}
+
+	return &schedule
+}
+
+func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.Source {
+	authorizedResources := d.Get("authorized_resources").(*schema.Set).List()
+	dataSourceID := d.Get("data_source_id").(string)
+	query := d.Get("query").(string)
+	queryType := d.Get("query_type").(string)
+
+	source := insights.Source{
+		AuthorizedResources: utils.ExpandStringSlice(authorizedResources.([]interface{})),
+		DataSourceID: utils.String(dataSourceID),
+		Query: utils.String(query),
+		QueryType: queryType,
+	}
+
+	return &source
 }
 
 func flattenAzureRmScheduledQueryRulesAznsAction(input *insights.AzNsActionGroup) []interface{} {

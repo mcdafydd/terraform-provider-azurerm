@@ -3,18 +3,18 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
-	//	"strings"
+	"strings"
 	"testing"
 
-	//	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
-	//	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
-	//	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/features"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/features"
 )
 
 func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
-	/*resourceName := "azurerm_monitor_activity_log_alert.test"
+	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
 
@@ -40,42 +40,42 @@ func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
 				ImportStateVerify: true,
 			},
 		},
-	})*/
+	})
 	return
 }
 
 func TestAccAzureRMMonitorScheduledQueryRules_requiresImport(t *testing.T) {
-	/*	if !features.ShouldResourcesBeImported() {
-			t.Skip("Skipping since resources aren't required to be imported")
-			return
-		}
+	if !features.ShouldResourcesBeImported() {
+		t.Skip("Skipping since resources aren't required to be imported")
+		return
+	}
 
-		resourceName := "azurerm_monitor_activity_log_alert.test"
-		ri := tf.AccRandTimeInt()
-		location := testLocation()
+	resourceName := "azurerm_monitor_activity_log_alert.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
 
-		resource.ParallelTest(t, resource.TestCase{
-			PreCheck:     func() { testAccPreCheck(t) },
-			Providers:    testAccProviders,
-			CheckDestroy: testCheckAzureRMMonitorScheduledQueryRulesDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccAzureRMMonitorScheduledQueryRules_basic(ri, location),
-					Check: resource.ComposeTestCheckFunc(
-						testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-					),
-				},
-				{
-					Config:      testAccAzureRMMonitorScheduledQueryRules_requiresImport(ri, location),
-					ExpectError: testRequiresImportError("azurerm_monitor_activity_log_alert"),
-				},
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMMonitorScheduledQueryRulesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMMonitorScheduledQueryRules_basic(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
+				),
 			},
-		})*/
+			{
+				Config:      testAccAzureRMMonitorScheduledQueryRules_requiresImport(ri, location),
+				ExpectError: testRequiresImportError("azurerm_monitor_activity_log_alert"),
+			},
+		},
+	})
 	return
 }
 
-func TestAccAzureRMMonitorScheduledQueryRules_singleResource(t *testing.T) {
-	/*resourceName := "azurerm_monitor_activity_log_alert.test"
+func TestAccAzureRMMonitorScheduledQueryRules_AlertingAction(t *testing.T) {
+	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	config := testAccAzureRMMonitorScheduledQueryRules_singleResource(ri, rs, testLocation())
@@ -104,12 +104,12 @@ func TestAccAzureRMMonitorScheduledQueryRules_singleResource(t *testing.T) {
 				ImportStateVerify: true,
 			},
 		},
-	})*/
+	})
 	return
 }
 
-func TestAccAzureRMMonitorScheduledQueryRules_complete(t *testing.T) {
-	/*resourceName := "azurerm_monitor_activity_log_alert.test"
+func TestAccAzureRMMonitorScheduledQueryRules_AlertingActionCrossResource(t *testing.T) {
+	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	config := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, testLocation())
@@ -145,77 +145,118 @@ func TestAccAzureRMMonitorScheduledQueryRules_complete(t *testing.T) {
 				ImportStateVerify: true,
 			},
 		},
-	})*/
+	})
+	return
+}
+
+func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
+	resourceName := "azurerm_monitor_activity_log_alert.test"
+	ri := tf.AccRandTimeInt()
+	rs := strings.ToLower(acctest.RandString(11))
+	config := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, testLocation())
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMMonitorScheduledQueryRulesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "description", "This is just a test resource."),
+					resource.TestCheckResourceAttr(resourceName, "scopes.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.operation_name", "Microsoft.Storage/storageAccounts/write"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_provider", "Microsoft.Storage"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_type", "Microsoft.Storage/storageAccounts"),
+					resource.TestCheckResourceAttrSet(resourceName, "criteria.0.resource_group"),
+					resource.TestCheckResourceAttrSet(resourceName, "criteria.0.resource_id"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", "user@example.com"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.level", "Error"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.status", "Failed"),
+					resource.TestCheckResourceAttr(resourceName, "action.#", "2"),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
 	return
 }
 
 func TestAccAzureRMMonitorScheduledQueryRules_basicAndCompleteUpdate(t *testing.T) {
-	/*	resourceName := "azurerm_monitor_activity_log_alert.test"
-		ri := tf.AccRandTimeInt()
-		rs := strings.ToLower(acctest.RandString(11))
-		location := testLocation()
-		basicConfig := testAccAzureRMMonitorScheduledQueryRules_basic(ri, location)
-		completeConfig := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, location)
+	resourceName := "azurerm_monitor_activity_log_alert.test"
+	ri := tf.AccRandTimeInt()
+	rs := strings.ToLower(acctest.RandString(11))
+	location := testLocation()
+	basicConfig := testAccAzureRMMonitorScheduledQueryRules_basic(ri, location)
+	completeConfig := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, location)
 
-		resource.ParallelTest(t, resource.TestCase{
-			PreCheck:     func() { testAccPreCheck(t) },
-			Providers:    testAccProviders,
-			CheckDestroy: testCheckAzureRMMonitorActionGroupDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: basicConfig,
-					Check: resource.ComposeTestCheckFunc(
-						testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-						resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-						resource.TestCheckResourceAttr(resourceName, "description", ""),
-						resource.TestCheckResourceAttr(resourceName, "scopes.#", "1"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_id", ""),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", ""),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.level", ""),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.status", ""),
-						resource.TestCheckResourceAttr(resourceName, "action.#", "0"),
-					),
-				},
-				{
-					Config: completeConfig,
-					Check: resource.ComposeTestCheckFunc(
-						testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-						resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-						resource.TestCheckResourceAttr(resourceName, "description", "This is just a test resource."),
-						resource.TestCheckResourceAttr(resourceName, "scopes.#", "2"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.operation_name", "Microsoft.Storage/storageAccounts/write"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_provider", "Microsoft.Storage"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_type", "Microsoft.Storage/storageAccounts"),
-						resource.TestCheckResourceAttrSet(resourceName, "criteria.0.resource_group"),
-						resource.TestCheckResourceAttrSet(resourceName, "criteria.0.resource_id"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", "user@example.com"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.level", "Error"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.status", "Failed"),
-						resource.TestCheckResourceAttr(resourceName, "action.#", "2"),
-					),
-				},
-				{
-					Config: basicConfig,
-					Check: resource.ComposeTestCheckFunc(
-						testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-						resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-						resource.TestCheckResourceAttr(resourceName, "description", ""),
-						resource.TestCheckResourceAttr(resourceName, "scopes.#", "1"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_id", ""),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", ""),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.level", ""),
-						resource.TestCheckResourceAttr(resourceName, "criteria.0.status", ""),
-						resource.TestCheckResourceAttr(resourceName, "action.#", "0"),
-					),
-				},
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMMonitorActionGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: basicConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "description", ""),
+					resource.TestCheckResourceAttr(resourceName, "scopes.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_id", ""),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", ""),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.level", ""),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.status", ""),
+					resource.TestCheckResourceAttr(resourceName, "action.#", "0"),
+				),
 			},
-		})*/
+			{
+				Config: completeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "description", "This is just a test resource."),
+					resource.TestCheckResourceAttr(resourceName, "scopes.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.operation_name", "Microsoft.Storage/storageAccounts/write"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_provider", "Microsoft.Storage"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_type", "Microsoft.Storage/storageAccounts"),
+					resource.TestCheckResourceAttrSet(resourceName, "criteria.0.resource_group"),
+					resource.TestCheckResourceAttrSet(resourceName, "criteria.0.resource_id"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", "user@example.com"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.level", "Error"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.status", "Failed"),
+					resource.TestCheckResourceAttr(resourceName, "action.#", "2"),
+				),
+			},
+			{
+				Config: basicConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "description", ""),
+					resource.TestCheckResourceAttr(resourceName, "scopes.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.category", "Recommendation"),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.resource_id", ""),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.caller", ""),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.level", ""),
+					resource.TestCheckResourceAttr(resourceName, "criteria.0.status", ""),
+					resource.TestCheckResourceAttr(resourceName, "action.#", "0"),
+				),
+			},
+		},
+	})
 	return
 }
 
@@ -405,7 +446,7 @@ func testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName string) resou
 
 		resp, err := conn.Get(ctx, resourceGroup, name)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on monitorScheduledQueryRulessClient: %+v", err)
+			return fmt.Errorf("Bad: Get on monitorScheduledQueryRulesClient: %+v", err)
 		}
 
 		if resp.StatusCode == http.StatusNotFound {

@@ -121,23 +121,21 @@ The following arguments are supported:
 * `data_source_id` - (Required) The resource uri over which log search query is to be run.
 * `description` - (Optional) The description of the Scheduled Query Rule.
 * `enabled` - (Optional) Whether this scheduled query rule is enabled.  Default is `true`.
-
-* `query` - (Required) Log search query. Required when `action_type` is `AlertingAction`.
-* `query_type` - (Required) Must equal "ResultCount" for now.
-Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
 * `throttling` - (Optional) Time (in minutes) for which Alerts should be throttled or suppressed.
 
 The following arguments are only supported when `action_type` is `AlertingAction`:
 
-* `azns_action` - (Required) An `azns_action` block as defined below.
-* `frequency` - (Required) Frequency (in minutes) at which rule condition should be evaluated.
-* `severity` - (Optional) Severity of the alert.
-* `time_window` - (Required) Time window for which data needs to be fetched for query (should be greater than or equal to `frequency`).
-* `trigger` - (Required) The condition that results in the alert rule being run.
+* `azns_action` - (Optional) An `azns_action` block as defined below.
+* `frequency` - (Optional) Frequency (in minutes) at which rule condition should be evaluated.  Required when `action_type` is `AlertingAction`.
+* `query` - (Optional) Log search query.  Required when `action_type` is `AlertingAction`.
+* `query_type` - (Optional) Must equal "ResultCount" for now.  Required when `action_type` is `AlertingAction`.
+* `severity` - (Optional) Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
+* `time_window` - (Optional) Time window for which data needs to be fetched for query (should be greater than or equal to `frequency`).  Required when `action_type` is `AlertingAction`.
+* `trigger` - (Optional) The condition that results in the alert rule being run.  Required when `action_type` is `AlertingAction`.
 
 The following arguments are only supported when `action_type` is `LogToMetricAction`:
 
-* `criteria` - (Required) A `criteria` block as defined below.
+* `criteria` - (Optional) A `criteria` block as defined below. Required when `action_type` is `LogToMetricAction`.
 
 ---
 

@@ -19,120 +19,63 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 			},
 			"resource_group_name": azure.SchemaResourceGroupNameForDataSource(),
 
-			"action": {
+			"action_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"azns_action": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"azns_action": {
-							Type:     schema.TypeSet,
+						"action_group": {
+							Type:     schema.TypeList,
 							Computed: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"action_group": {
-										Type:     schema.TypeList,
-										Computed: true,
-										Elem:     schema.TypeString,
-									},
-									"custom_webhook_payload": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"email_subject": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-								},
-							},
+							Elem:     schema.TypeString,
 						},
-						"criteria": {
-							Type:     schema.TypeSet,
-							Computed: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"dimension": {
-										Type:     schema.TypeSet,
-										Computed: true,
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"name": {
-													Type:     schema.TypeList,
-													Computed: true,
-													Elem:     schema.TypeString,
-												},
-												"operator": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-												"values": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-											},
-										},
-									},
-									"metric_name": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-								},
-							},
-						},
-						"severity": {
+						"custom_webhook_payload": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"throttling": {
-							Type:     schema.TypeInt,
+						"email_subject": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"trigger": {
+					},
+				},
+			},
+			"criteria": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"dimension": {
 							Type:     schema.TypeSet,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"metric_trigger": {
-										Type:     schema.TypeSet,
+									"name": {
+										Type:     schema.TypeList,
 										Computed: true,
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"metric_column": {
-													Type:     schema.TypeList,
-													Computed: true,
-													Elem:     schema.TypeString,
-												},
-												"metric_trigger_type": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-												"operator": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-												"values": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-											},
-										},
+										Elem:     schema.TypeString,
 									},
 									"operator": {
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									"threshold": {
-										Type:     schema.TypeFloat,
+									"values": {
+										Type:     schema.TypeString,
 										Computed: true,
 									},
 								},
 							},
 						},
+						"metric_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
-			},
-			"action_type": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			"data_source_id": {
 				Type:     schema.TypeString,
@@ -158,9 +101,58 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"severity": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"throttling": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"time_window": {
 				Type:     schema.TypeInt,
 				Computed: true,
+			},
+			"trigger": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"metric_trigger": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"metric_column": {
+										Type:     schema.TypeList,
+										Computed: true,
+										Elem:     schema.TypeString,
+									},
+									"metric_trigger_type": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"operator": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"values": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"operator": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"threshold": {
+							Type:     schema.TypeFloat,
+							Computed: true,
+						},
+					},
+				},
 			},
 		},
 	}

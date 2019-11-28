@@ -398,6 +398,24 @@ func flattenAzureRmScheduledQueryRulesAction(input *insights.BasicAction) []inte
 	return []interface{}{result}
 }
 
+func flattenAzureRmScheduledQueryRulesCriteria(input *[]insights.Criteria) []interface{} {
+	result := make(map[string]interface{})
+
+	if input != nil {
+		for _, criteria := range *input {
+			v := make(map[string]interface{})
+			dimension := make(map[string]interface{})
+
+			v["dimension"] = dimension
+			v["metric_name"] = criteria.MetricName.(string)
+
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
 func flattenAzureRmScheduledQueryRulesSchedule(input *insights.Schedule) []interface{} {
 	result := make(map[string]interface{})
 
@@ -436,7 +454,6 @@ func flattenAzureRmScheduledQueryRulesSource(input *insights.Source) []interface
 	}
 
 	if input.AuthorizedResources != nil {
-		v := make(map[string][]string)
 		resources := []string{}
 		for _, authorized := range *input.AuthorizedResources {
 			if authorized != "" {

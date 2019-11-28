@@ -182,24 +182,22 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(*resp.ID)
-
-	// set required props for creation
 	d.Set("description", resp.Description)
 	d.Set("enabled", resp.Enabled)
 
-	// read-only props
-	d.Set("last_updated_time", resp.LastUpdatedTime)
-	d.Set("provisioning_state", resp.ProvisioningState)
-
 	if action, ok := resp.Action.(*insights.AlertingAction); ok {
-		if action.OdataType == "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction" {
-			d.Set("action_type", "AlertingAction")
-		}
+		d.Set("action_type", "AlertingAction")
+
+		d.Set("azns_action", *action.AznsAction)
+		d.Set("severity", action.Severity)
+		d.Set("throttling", *action.ThrottlingInMin)
+		d.Set("trigger", *action.Trigger)
 	}
 
-	if action, ok := resp.Action.(*insights.AlertingAction); ok {
-		if action.OdataType == "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction" {
-			d.Set("action_type", "LogToMetricAction")
+	if action, ok := resp.Action.(*insights.LogToMetricAction); ok {
+		d.Set("action_type", "LogToMetricAction")
+		if err := d.Set("criteria", flattenAzureRmScheduledQueryRulesCriteria(action.Criteria)); err != nil {
+			return fmt.Errorf("Error setting `criteria`: %+v", err)
 		}
 	}
 
@@ -239,6 +237,10 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	if err := d.Set("source", flattenAzureRmScheduledQueryRulesSource(resp.Source)); err != nil {
 		return fmt.Errorf("Error setting `source`: %+v", err)
 	}
+
+	// read-only props
+	d.Set("last_updated_time", resp.LastUpdatedTime)
+	d.Set("provisioning_state", resp.ProvisioningState)
 
 	return nil
 }

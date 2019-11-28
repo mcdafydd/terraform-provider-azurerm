@@ -379,27 +379,24 @@ func expandMonitorScheduledQueryRulesSource(input []interface{}) (*insights.Sour
 	}
 }
 
-func flattenAzureRmScheduledQueryRulesAction(input *insights.BasicAction) []interface{} {
-	result := make(map[string]interface{})
+func flattenAzureRmScheduledQueryRulesAznsAction(input *insights.AzNsActionGroup) []interface{} {
+	result := make([]]interface{})
 
-	if input == nil {
-		return []interface{}{}
+	if input != nil {
+		v := make(map[string]interface{})
+		if input.ActionGroup != nil {
+			v["action_group"] = *input.ActionGroup
+		}
+		v["custom_webhook_payload"] = *input.CustomWebhookPayload
+		v["email_subject"] = *input.EmailSubject
 	}
+	result = append(result, v)
 
-	switch input.OdataType {
-	case "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction":
-		result["action_type"] = "AlertingAction"
-	case "OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction":
-		result["action_type"] = "LogToMetricAction"
-	default:
-		return fmt.Errorf("Invalid `action_type`: %+v", input.OdataType)
-	}
-
-	return []interface{}{result}
+	return result
 }
 
 func flattenAzureRmScheduledQueryRulesCriteria(input *[]insights.Criteria) []interface{} {
-	result := make(map[string]interface{})
+	result := make([]interface{}, 0)
 
 	if input != nil {
 		for _, criteria := range *input {
@@ -407,7 +404,7 @@ func flattenAzureRmScheduledQueryRulesCriteria(input *[]insights.Criteria) []int
 			dimension := make(map[string]interface{})
 
 			v["dimension"] = dimension
-			v["metric_name"] = criteria.MetricName.(string)
+			v["metric_name"] = *criteria.MetricName
 
 			result = append(result, v)
 		}

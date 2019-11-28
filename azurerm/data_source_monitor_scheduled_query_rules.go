@@ -187,15 +187,20 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 
 	if action, ok := resp.Action.(*insights.AlertingAction); ok {
 		d.Set("action_type", "AlertingAction")
-
-		d.Set("azns_action", *action.AznsAction)
-		d.Set("severity", action.Severity)
+		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
-		d.Set("trigger", *action.Trigger)
+
+		if err := d.Set("azns_action", flattenAzureRmScheduledQueryRulesAznsAction(action.AznsAction)); err != nil {
+			return fmt.Errorf("Error setting `azns_action`: %+v", err)
+		}
+		if err := d.Set("trigger", flattenAzureRmScheduledQueryRulesTrigger(action.Trigger)); err != nil {
+			return fmt.Errorf("Error setting `trigger`: %+v", err)
+		}
 	}
 
 	if action, ok := resp.Action.(*insights.LogToMetricAction); ok {
 		d.Set("action_type", "LogToMetricAction")
+
 		if err := d.Set("criteria", flattenAzureRmScheduledQueryRulesCriteria(action.Criteria)); err != nil {
 			return fmt.Errorf("Error setting `criteria`: %+v", err)
 		}
@@ -211,6 +216,10 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	if source := resp.Source; source != nil {
+		if err := d.Set("source", flattenAzureRmScheduledQueryRulesSource(resp.Source)); err != nil {
+			return fmt.Errorf("Error setting `source`: %+v", err)
+		}
+
 		if source.AuthorizedResources != nil {
 			d.Set("authorized_resources", *source.AuthorizedResources)
 		}
@@ -224,18 +233,6 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 			return fmt.Errorf("Error setting `action`: %+v", err)
 		}
 		d.Set("query_type", source.QueryType)
-	}
-
-	if err := d.Set("action", flattenAzureRmScheduledQueryRulesAction(&resp.Action)); err != nil {
-		return fmt.Errorf("Error setting `action`: %+v", err)
-	}
-
-	if err := d.Set("schedule", flattenAzureRmScheduledQueryRulesSchedule(resp.Schedule)); err != nil {
-		return fmt.Errorf("Error setting `schedule`: %+v", err)
-	}
-
-	if err := d.Set("source", flattenAzureRmScheduledQueryRulesSource(resp.Source)); err != nil {
-		return fmt.Errorf("Error setting `source`: %+v", err)
 	}
 
 	// read-only props

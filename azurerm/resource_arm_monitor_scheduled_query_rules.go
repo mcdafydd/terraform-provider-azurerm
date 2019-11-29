@@ -44,6 +44,14 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 					"LogToMetricAction",
 				}, false),
 			},
+			"authorized_resources": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: azure.ValidateResourceID,
+				},
+			},
 			"azns_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -66,12 +74,37 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 					},
 				},
 			},
-			"authorized_resources": {
+			"criteria": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: azure.ValidateResourceID,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"dimension": {
+							Type:     schema.TypeList,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Required: true,
+										Elem:     schema.TypeString,
+									},
+									"operator": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"values": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+						"metric_name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
 				},
 			},
 			"data_source_id": {
@@ -136,6 +169,39 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"metric_trigger": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"metric_column": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"metric_trigger_type": {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											"Consecutive",
+											"Total",
+										}, false),
+									},
+									"operator": {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											"GreaterThan",
+											"LessThan",
+											"Equal",
+										}, false),
+									},
+									"threshold": {
+										Type:     schema.TypeFloat,
+										Required: true,
+									},
+								},
+							},
+						},
 						"operator": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -146,7 +212,7 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 							}, false),
 						},
 						"threshold": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeFloat,
 							Required: true,
 						},
 					},
@@ -291,11 +357,11 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 	trigger := d.Get("trigger").(*schema.Set).List()
 
 	action := insights.AlertingAction{
-		AznsAction: &aznsAction,
-		Severity: severity,
+		AznsAction:      &aznsAction,
+		Severity:        severity,
 		ThrottlingInMin: utils.Int(throttling),
-		Trigger: &trigger,
-		OdataType: insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,
+		Trigger:         &trigger,
+		OdataType:       insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,
 	}
 
 	return &action
@@ -334,7 +400,7 @@ func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) i
 	criteria := d.Get("criteria").(string).List()
 
 	action := insights.LogToMetricAction{
-		Criteria: &criteria,
+		Criteria:  &criteria,
 		OdataType: insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction,
 	}
 
@@ -352,7 +418,7 @@ func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.
 	timeWindow := d.Get("time_window").(int)
 
 	schedule := insights.Schedule{
-		FrequencyInMin: utils.Int(frequency),
+		FrequencyInMin:  utils.Int(frequency),
 		TimeWindowInMin: utils.Int(timeWindow),
 	}
 
@@ -367,9 +433,9 @@ func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.So
 
 	source := insights.Source{
 		AuthorizedResources: utils.ExpandStringSlice(authorizedResources.([]interface{})),
-		DataSourceID: utils.String(dataSourceID),
-		Query: utils.String(query),
-		QueryType: queryType,
+		DataSourceID:        utils.String(dataSourceID),
+		Query:               utils.String(query),
+		QueryType:           queryType,
 	}
 
 	return &source

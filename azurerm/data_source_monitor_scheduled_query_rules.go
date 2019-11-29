@@ -23,13 +23,21 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"authorized_resources": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+			},
 			"azns_action": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"action_group": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Computed: true,
 							Elem:     schema.TypeString,
 						},
@@ -50,12 +58,12 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"dimension": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
-										Type:     schema.TypeList,
+										Type:     schema.TypeString,
 										Computed: true,
 										Elem:     schema.TypeString,
 									},
@@ -93,6 +101,14 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"lastUpdatedTime": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"provisioningState": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"query": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -124,9 +140,8 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"metric_column": {
-										Type:     schema.TypeList,
+										Type:     schema.TypeString,
 										Computed: true,
-										Elem:     schema.TypeString,
 									},
 									"metric_trigger_type": {
 										Type:     schema.TypeString,
@@ -136,8 +151,8 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									"values": {
-										Type:     schema.TypeString,
+									"threshold": {
+										Type:     schema.TypeFloat,
 										Computed: true,
 									},
 								},
@@ -179,10 +194,11 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 
 	if action, ok := resp.Action.(*insights.AlertingAction); ok {
 		d.Set("action_type", "AlertingAction")
+		d.Set("azns_action", *action.AznsAction)
+		//flattenAzureRmScheduledQueryRulesAlertingAction(action)
 		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
 
-		flattenAzureRmScheduledQueryRulesAlertingAction(action)
 		if err := d.Set("trigger", flattenAzureRmScheduledQueryRulesAlertingAction(action.Trigger)); err != nil {
 			return fmt.Errorf("Error setting `trigger`: %+v", err)
 		}
@@ -208,8 +224,17 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	if source := resp.Source; source != nil {
-		if err := d.Set("source", flattenAzureRmScheduledQueryRulesSource(resp.Source)); err != nil {
-			return fmt.Errorf("Error setting `source`: %+v", err)
+		if source.AuthorizedResources != nil {
+			d.Set("authorized_resources", *source.AuthorizedResources)
+		}
+		if source.DataSourceID != nil {
+			d.Set("data_source_id", *source.DataSourceID)
+		}
+		if source.Query != nil {
+			d.Set("query", *source.Query)
+		}
+		if source.QueryType != nil {
+			d.Set("query_type", string(*source.QueryType))
 		}
 	}
 

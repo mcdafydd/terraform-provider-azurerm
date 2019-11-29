@@ -259,9 +259,9 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 	var action insights.BasicAction
 	switch actionType {
 	case "AlertingAction":
-		action = expandMonitorScheduledQueryRulesAlertingAction(d).(*insights.AlertingAction)
+		action = expandMonitorScheduledQueryRulesAlertingAction(d)
 	case "LogToMetricAction":
-		action = expandMonitorScheduledQueryRulesLogToMetricAction(d).(*insights.LogToMetricAction)
+		action = expandMonitorScheduledQueryRulesLogToMetricAction(d)
 	default:
 		return fmt.Errorf("Invalid action_type %q. Value must be either 'AlertingAction' or 'LogToMetricAction'", actionType)
 	}
@@ -360,24 +360,24 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 	aznsActionRaw := d.Get("azns_action").(*schema.Set).List()
 	aznsAction := expandMonitorScheduledQueryRulesAznsAction(aznsActionRaw)
 	severity := d.Get("severity").(insights.AlertSeverity)
-	throttling := d.Get("throttling").(int)
+	throttling := d.Get("throttling").(int32)
 
 	triggerRaw := d.Get("trigger").(*schema.Set).List()
-	trigger := expandMonitorScheduledQueryRulesTrigger(triggerRaw)
+	trigger := expandMonitorScheduledQueryRulesTrigger(&triggerRaw)
 
 	action := insights.AlertingAction{
-		AznsAction:      &aznsAction,
+		AznsAction:      aznsAction,
 		Severity:        severity,
 		ThrottlingInMin: utils.Int32(throttling),
-		Trigger:         &trigger,
+		Trigger:         trigger,
 		OdataType:       insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,
 	}
 
 	return &action
 }
 
-func expandMonitorScheduledQueryRulesAznsAction(input []interface{}) *insights.AznsActionGroup {
-	result := insights.AznsActionGroup{}
+func expandMonitorScheduledQueryRulesAznsAction(input []interface{}) *insights.AzNsActionGroup {
+	result := insights.AzNsActionGroup{}
 	return &result
 }
 
@@ -404,11 +404,12 @@ func expandMonitorScheduledQueryRulesCriteria(input []interface{}) *[]insights.C
 	return &criteria
 }
 
-func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) insights.LogToMetricAction {
-	criteria := d.Get("criteria").(*schema.Set).List()
+func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) *insights.LogToMetricAction {
+	criteriaRaw := d.Get("criteria").(*schema.Set).List()
+	criteria := expandMonitorScheduledQueryRulesCriteria(criteriaRaw)
 
 	action := insights.LogToMetricAction{
-		Criteria:  &criteria,
+		Criteria:  criteria,
 		OdataType: insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction,
 	}
 
@@ -419,15 +420,16 @@ func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.
 	actionType := d.Get("action_type").(string)
 
 	if actionType != "AlertingAction" {
-		return nil, fmt.Errorf("'frequency' and 'time_window' only supported if action_type is 'AlertingAction'")
+		fmt.Errorf("'frequency' and 'time_window' only supported if action_type is 'AlertingAction'")
+		return nil
 	}
 
-	frequency := d.Get("frequency").(*schema.Set).List()
-	timeWindow := d.Get("time_window").(int)
+	frequency := d.Get("frequency").(int32)
+	timeWindow := d.Get("time_window").(int32)
 
 	schedule := insights.Schedule{
-		FrequencyInMin:  utils.Int32(frequency),
-		TimeWindowInMin: utils.Int32(timeWindow),
+		FrequencyInMinutes:  utils.Int32(frequency),
+		TimeWindowInMinutes: utils.Int32(timeWindow),
 	}
 
 	return &schedule
@@ -437,10 +439,10 @@ func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.So
 	authorizedResources := d.Get("authorized_resources").(*schema.Set).List()
 	dataSourceID := d.Get("data_source_id").(string)
 	query := d.Get("query").(string)
-	queryType := d.Get("query_type").(string)
+	queryType := d.Get("query_type").(insights.QueryType)
 
 	source := insights.Source{
-		AuthorizedResources: utils.ExpandStringSlice(authorizedResources.([]interface{})),
+		AuthorizedResources: utils.ExpandStringSlice(authorizedResources),
 		DataSourceID:        utils.String(dataSourceID),
 		Query:               utils.String(query),
 		QueryType:           queryType,

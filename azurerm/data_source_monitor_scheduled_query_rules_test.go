@@ -9,7 +9,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
 
-func testAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricAction(t *testing.T) {
+func TestAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricAction(t *testing.T) {
 	dataSourceName := "data.azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := acctest.RandString(10)
@@ -21,18 +21,15 @@ func testAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricAction(t *tes
 			{
 				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricActionConfig(ri, rs, testLocation()),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(dataSourceName, "name"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "locations.#"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "enabled"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "last_time_updated"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "provisioning_state"),
+					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
+					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingAction(t *testing.T) {
+func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingAction(t *testing.T) {
 	dataSourceName := "data.azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := acctest.RandString(10)
@@ -45,18 +42,15 @@ func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingAction(t *testin
 			{
 				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionConfig(ri, rs, testLocation()),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(dataSourceName, "name"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "locations.#"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "enabled"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "last_time_updated"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "provisioning_state"),
+					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
+					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(t *testing.T) {
+func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(t *testing.T) {
 	dataSourceName := "data.azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := acctest.RandString(10)
@@ -69,11 +63,8 @@ func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResou
 			{
 				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResourceConfig(ri, rs, testLocation()),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(dataSourceName, "name"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "locations.#"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "enabled"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "last_time_updated"),
-					resource.TestCheckResourceAttrSet(dataSourceName, "provisioning_state"),
+					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
+					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
 				),
 			},
 		},
@@ -144,7 +135,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 data "azurerm_monitor_scheduled_query_rules" "test" {
   name = azurerm_monitor_scheduled_query_rules.test.name
 }
-`, rInt, location, rString, rInt, location)
+`, rInt, location, rInt, rInt, rInt)
 }
 
 func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionConfig(rInt int, rString string, location string) string {
@@ -155,7 +146,7 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_log_analytics_workspace" "test" {
-  name                = "acctest-01"
+  name                = "acctestWorkspace-%d"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   sku                 = "PerGB2018"
@@ -174,7 +165,7 @@ resource "azurerm_monitor_action_group" "test" {
 }
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
-  name                = "acctestehns-%s"
+  name                = "acctestSqr-%d"
 	location            = azurerm_resource_group.test.location
 	description         = "test alerting action"
 	enabled             = true
@@ -210,7 +201,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 data "azurerm_monitor_scheduled_query_rules" "test" {
   name = azurerm_monitor_alerting_action.test.name
 }
-`, rInt, location, rString, rInt, location)
+`, rInt, location, rInt, rInt, rInt)
 }
 
 func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResourceConfig(rInt int, rString string, location string) string {
@@ -221,7 +212,7 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_log_analytics_workspace" "test" {
-  name                = "acctest-01"
+  name                = "acctestWorkspace-%d"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   sku                 = "PerGB2018"
@@ -229,7 +220,7 @@ resource "azurerm_log_analytics_workspace" "test" {
 }
 
 resource "azurerm_log_analytics_workspace" "test2" {
-  name                = "acctest-02"
+  name                = "acctestWorkspace2-%d"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   sku                 = "PerGB2018"
@@ -248,7 +239,7 @@ resource "azurerm_monitor_action_group" "test" {
 }
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
-  name                = "acctestehns-%s"
+  name                = "acctestSqr-%d"
 	location            = azurerm_resource_group.test.location
 	description         = "test alerting action"
 	enabled             = true
@@ -287,5 +278,5 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 data "azurerm_monitor_scheduled_query_rules" "test" {
   name = azurerm_monitor_alerting_action.test.name
 }
-`, rInt, location, rString, rInt, location)
+`, rInt, location, rInt, rInt, rInt, rInt)
 }

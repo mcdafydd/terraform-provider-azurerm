@@ -101,11 +101,11 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"lastUpdatedTime": {
+			"last_updated_time": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"provisioningState": {
+			"provisioning_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

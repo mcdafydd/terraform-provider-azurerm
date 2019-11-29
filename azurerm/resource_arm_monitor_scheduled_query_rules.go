@@ -48,8 +48,7 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: azure.ValidateResourceID,
+					Type: schema.TypeString,
 				},
 			},
 			"azns_action": {
@@ -58,9 +57,9 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"action_group": {
-							Type:         schema.TypeSet,
-							Required:     true,
-							ValidateFunc: azure.ValidateResourceID,
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem:     schema.TypeString,
 						},
 						"custom_webhook_payload": {
 							Type:         schema.TypeString,
@@ -131,11 +130,11 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"lastUpdatedTime": {
+			"last_updated_time": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"provisioningState": {
+			"provisioning_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

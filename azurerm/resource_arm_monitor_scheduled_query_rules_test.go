@@ -10,10 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/features"
 )
 
-func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
+/*func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
@@ -37,43 +36,13 @@ func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
 		},
 	})
 	return
-}
-
-func TestAccAzureRMMonitorScheduledQueryRules_requiresImport(t *testing.T) {
-	if !features.ShouldResourcesBeImported() {
-		t.Skip("Skipping since resources aren't required to be imported")
-		return
-	}
-
-	resourceName := "azurerm_monitor_activity_log_alert.test"
-	ri := tf.AccRandTimeInt()
-	location := testLocation()
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMMonitorScheduledQueryRulesDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAzureRMMonitorScheduledQueryRules_basic(ri, location),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-				),
-			},
-			{
-				Config:      testAccAzureRMMonitorScheduledQueryRules_requiresImport(ri, location),
-				ExpectError: testRequiresImportError("azurerm_monitor_activity_log_alert"),
-			},
-		},
-	})
-	return
-}
+}*/
 
 func TestAccAzureRMMonitorScheduledQueryRules_AlertingAction(t *testing.T) {
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorScheduledQueryRules_singleResource(ri, rs, testLocation())
+	config := testAccAzureRMMonitorScheduledQueryRules_alertingAction(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -100,7 +69,7 @@ func TestAccAzureRMMonitorScheduledQueryRules_AlertingActionCrossResource(t *tes
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, testLocation())
+	config := testAccAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -127,7 +96,7 @@ func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, testLocation())
+	config := testAccAzureRMMonitorScheduledQueryRules_logToMetricAction(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -139,18 +108,20 @@ func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
 				),
+				PreventDiskCleanup: true,
 			},
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				PreventDiskCleanup: true,
+				ResourceName:       resourceName,
+				ImportState:        true,
+				ImportStateVerify:  true,
 			},
 		},
 	})
 	return
 }
 
-func TestAccAzureRMMonitorScheduledQueryRules_basicAndCompleteUpdate(t *testing.T) {
+/*func TestAccAzureRMMonitorScheduledQueryRules_basicAndCompleteUpdate(t *testing.T) {
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
@@ -184,49 +155,114 @@ func TestAccAzureRMMonitorScheduledQueryRules_basicAndCompleteUpdate(t *testing.
 		},
 	})
 	return
-}
-
+}*/
+/*
 func testAccAzureRMMonitorScheduledQueryRules_basic(rInt int, location string) string {
 	return fmt.Sprintf(`
-resource "azurerm_resource_group" "test" {
-  name     = "acctestRG-%d"
-  location = "%s"
-}
+	resource "azurerm_monitor_scheduled_query_rules" "import" {
+		name                = "acctestSqr-%d"
+		location            = "${azurerm_resource_group.test.location}"
+		description         = "test alerting action"
+		enabled             = true
+		action_type         = "AlertingAction"
 
-resource "azurerm_monitor_activity_log_alert" "test" {
-  name                = "acctestScheduledQueryRules-%d"
-  resource_group_name = "${azurerm_resource_group.test.name}"
-  scopes              = ["${azurerm_resource_group.test.id}"]
+		query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+		data_source_id = "${azurerm_log_analytics_workspace.test.id}"
+		query_type     = "ResultCount"
 
-  criteria {
-    category = "Recommendation"
-  }
-}
+		frequency   = 60
+		time_window = 60
+
+
+		severity    = 3
+		azns_action {
+			action_group = ["${azurerm_monitor_action_group.test.id}"]
+			email_subject = "Custom alert email subject"
+		}
+
+		trigger {
+			operator  = "GreaterThan"
+			threshold = 5000
+		}
+	}
+
 `, rInt, location, rInt)
-}
-
-func testAccAzureRMMonitorScheduledQueryRules_requiresImport(rInt int, location string) string {
-	template := testAccAzureRMMonitorScheduledQueryRules_basic(rInt, location)
-	return fmt.Sprintf(`
-%s
-
-resource "azurerm_monitor_activity_log_alert" "import" {
-  name                = "${azurerm_monitor_activity_log_alert.test.name}"
-  resource_group_name = "${azurerm_monitor_activity_log_alert.test.resource_group_name}"
-  scopes              = ["${azurerm_resource_group.test.id}"]
-
-  criteria {
-    category = "Recommendation"
-  }
-}
-`, template)
-}
-
-func testAccAzureRMMonitorScheduledQueryRules_singleResource(rInt int, rString, location string) string {
+}*/
+func testAccAzureRMMonitorScheduledQueryRules_alertingAction(rInt int, rString, location string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
   location = "%s"
+}
+
+resource "azurerm_application_insights" "test" {
+  name                = "acctestAppInsights-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  application_type    = "web"
+}
+
+resource "azurerm_monitor_action_group" "test" {
+	name                = "acctestActionGroup-%d"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  short_name          = "acctestag"
+}
+
+resource "azurerm_monitor_scheduled_query_rules" "test" {
+  name                = "acctestsqr-%d"
+	location            = "${azurerm_resource_group.test.location}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
+	description         = "test log to metric action"
+	enabled             = true
+	action_type         = "LogToMetric"
+
+	data_source_id = "${azurerm_application_insights.test.id}"
+  query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	query_type     = "ResultCount"
+
+	frequency   = 60
+  time_window = 60
+
+	severity     = 3
+	azns_action {
+		action_group = ["${azurerm_monitor_action_group.test.id}"]
+		email_subject = "Custom alert email subject"
+	}
+
+	trigger {
+		operator = "GreaterThan"
+		threshold         = 5000
+		metric_trigger {
+			operator            = "GreaterThan"
+			threshold           = 5
+			metric_trigger_type = "Consecutive"
+			metric_column       = "Computer"
+		}
+	}
+}
+`, rInt, location, rInt, rInt, rInt)
+}
+
+func testAccAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(rInt int, rString, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_application_insights" "test" {
+  name                = "acctestAppInsights-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  application_type    = "web"
+}
+
+resource "azurerm_log_analytics_workspace" "test" {
+  name                = "acctestWorkspace-%d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
 }
 
 resource "azurerm_monitor_action_group" "test" {
@@ -235,96 +271,95 @@ resource "azurerm_monitor_action_group" "test" {
   short_name          = "acctestag"
 }
 
-resource "azurerm_storage_account" "test" {
-  name                     = "acctestsa%s"
-  resource_group_name      = "${azurerm_resource_group.test.name}"
-  location                 = "${azurerm_resource_group.test.location}"
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
+resource "azurerm_monitor_scheduled_query_rules" "test" {
+  name                = "acctestsqr-%d"
+	location            = "${azurerm_resource_group.test.location}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
+	description         = "test log to metric action"
+	enabled             = true
+	action_type         = "LogToMetric"
+
+	authorized_resources = ["${azurerm_application_insights.test.id}", "${azurerm_log_analytics_workspace.test.id}"]
+	data_source_id       = "${azurerm_application_insights.test.id}"
+  query                = "union requests, workspace(${azurerm_log_analytics_workspace.test.name}).Heartbeat"
+	query_type           = "ResultCount"
+
+	frequency   = 60
+  time_window = 60
+
+	severity     = 3
+	azns_action {
+		action_group = ["${azurerm_monitor_action_group.test.id}"]
+		email_subject = "Custom alert email subject"
+	}
+
+	trigger {
+		operator = "GreaterThan"
+		threshold         = 5000
+		metric_trigger {
+			operator            = "GreaterThan"
+			threshold           = 5
+			metric_trigger_type = "Consecutive"
+			metric_column       = "Computer"
+		}
+	}
+}
+`, rInt, location, rInt, rInt, rInt, rInt)
 }
 
-resource "azurerm_monitor_activity_log_alert" "test" {
-  name                = "acctestScheduledQueryRules-%d"
-  resource_group_name = "${azurerm_resource_group.test.name}"
-  scopes              = ["${azurerm_resource_group.test.id}"]
-
-  criteria {
-    operation_name = "Microsoft.Storage/storageAccounts/write"
-    category       = "Recommendation"
-    resource_id    = "${azurerm_storage_account.test.id}"
-  }
-
-  action {
-    action_group_id = "${azurerm_monitor_action_group.test.id}"
-  }
-}
-`, rInt, location, rInt, rString, rInt)
-}
-
-func testAccAzureRMMonitorScheduledQueryRules_complete(rInt int, rString, location string) string {
+func testAccAzureRMMonitorScheduledQueryRules_logToMetricAction(rInt int, rString, location string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
   location = "%s"
 }
 
-resource "azurerm_monitor_action_group" "test1" {
-  name                = "acctestActionGroup1-%d"
+resource "azurerm_application_insights" "test" {
+  name                = "acctestAppInsights-%d"
+  location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  short_name          = "acctestag1"
+  application_type    = "web"
 }
 
-resource "azurerm_monitor_action_group" "test2" {
-  name                = "acctestActionGroup2-%d"
+resource "azurerm_monitor_action_group" "test" {
+	name                = "acctestActionGroup-%d"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  short_name          = "acctestag2"
+  short_name          = "acctestag"
 }
 
-resource "azurerm_storage_account" "test" {
-  name                     = "acctestsa%s"
-  resource_group_name      = "${azurerm_resource_group.test.name}"
-  location                 = "${azurerm_resource_group.test.location}"
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
-resource "azurerm_monitor_activity_log_alert" "test" {
-  name                = "acctestScheduledQueryRules-%d"
+resource "azurerm_monitor_scheduled_query_rules" "test" {
+  name                = "acctestsqr-%d"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  enabled             = true
-  description         = "This is just a test resource."
+	location            = "${azurerm_resource_group.test.location}"
+	description         = "test log to metric action"
+	enabled             = true
+	action_type         = "LogToMetric"
 
-  scopes = [
-    "${azurerm_resource_group.test.id}",
-    "${azurerm_storage_account.test.id}",
-  ]
+  query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	data_source_id = "${azurerm_application_insights.test.id}"
+	query_type     = "ResultCount"
 
-  criteria {
-    operation_name    = "Microsoft.Storage/storageAccounts/write"
-    category          = "Recommendation"
-    resource_provider = "Microsoft.Storage"
-    resource_type     = "Microsoft.Storage/storageAccounts"
-    resource_group    = "${azurerm_resource_group.test.name}"
-    resource_id       = "${azurerm_storage_account.test.id}"
-    caller            = "user@example.com"
-    level             = "Error"
-    status            = "Failed"
-  }
+	frequency   = 60
+  time_window = 60
 
-  action {
-    action_group_id = "${azurerm_monitor_action_group.test1.id}"
-  }
+	severity     = 3
+	azns_action {
+		action_group = ["${azurerm_monitor_action_group.test.id}"]
+		email_subject = "Custom alert email subject"
+	}
 
-  action {
-    action_group_id = "${azurerm_monitor_action_group.test2.id}"
-
-    webhook_properties = {
-      from = "terraform test"
-      to   = "microsoft azure"
-    }
-  }
+	trigger {
+		operator = "GreaterThan"
+		threshold         = 5000
+		metric_trigger {
+			operator            = "GreaterThan"
+			threshold           = 5
+			metric_trigger_type = "Consecutive"
+			metric_column       = "Computer"
+		}
+	}
 }
-`, rInt, location, rInt, rInt, rString, rInt)
+`, rInt, location, rInt, rInt, rInt)
 }
 
 func testCheckAzureRMMonitorScheduledQueryRulesDestroy(s *terraform.State) error {

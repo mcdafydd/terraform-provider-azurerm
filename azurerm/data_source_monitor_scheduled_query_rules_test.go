@@ -13,13 +13,14 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricAction(t *tes
 	dataSourceName := "data.azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := acctest.RandString(10)
+	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricActionConfig(ri, rs, testLocation()),
+				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_logToMetricActionConfig(ri, rs, location),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
 					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
@@ -80,60 +81,52 @@ resource "azurerm_resource_group" "test" {
 
 resource "azurerm_application_insights" "test" {
   name                = "acctestAppInsights-%d"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
   application_type    = "web"
 }
 
 resource "azurerm_monitor_action_group" "test" {
   name                = "acctestActionGroup-%d"
-  resource_group_name = azurerm_resource_group.test.name
+  resource_group_name = "${azurerm_resource_group.test.name}"
   short_name          = "acctestag"
-
-  email_receiver {
-    name          = "sendtoadmin"
-    email_address = "admin@contoso.com"
-	}
 }
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
-  name                = "acctestsqr-%d"
-	location            = azurerm_resource_group.test.location
+	name                = "acctestsqr-%d"
+	location            = "${azurerm_resource_group.test.location}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
 	description         = "test log to metric action"
 	enabled             = true
-	type                = "LogToMetricAction"
+	action_type         = "LogToMetric"
 
-  query        = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
-	dataSourceId = azurerm_application_insights.test.id
-	queryType    = "ResultCount"
+  query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	data_source_id = "${azurerm_application_insights.test.id}"
+	query_type     = "ResultCount"
 
-	frequencyInMinutes  = 60
-  timeWindowInMinutes = 60
+	frequency   = 60
+  time_window = 60
 
-	action {
-		severity     = 3
-    aznsAction {
-      actionGroup = [
-        azurerm_monitor_action_group.test.id
-      ]
-      emailSubject": "Custom alert email subject"
+	severity     = 3
+	azns_action {
+		action_group = ["${azurerm_monitor_action_group.test.id}"]
+		email_subject = "Custom alert email subject"
+	}
+
+	trigger {
+		operator = GreaterThan"
+		threshold         = 5000
+		metric_trigger {
+			operator            = "GreaterThan"
+			threshold           = 5
+			metric_trigger_type = "Consecutive"
+			metric_column       = "Computer"
 		}
-
-    trigger {
-      thresholdOperator = GreaterThan"
-			threshold         = 5000
-			metricTrigger {
-				thresholdOperator = "GreaterThan"
-				threshold         = 5
-				metricTriggerType = "Consecutive"
-				metricColumn      = "Computer"
-			}
-    }
 	}
 }
 
 data "azurerm_monitor_scheduled_query_rules" "test" {
-  name = azurerm_monitor_scheduled_query_rules.test.name
+  name = "${azurerm_monitor_scheduled_query_rules.test.name}"
 }
 `, rInt, location, rInt, rInt, rInt)
 }
@@ -147,59 +140,48 @@ resource "azurerm_resource_group" "test" {
 
 resource "azurerm_log_analytics_workspace" "test" {
   name                = "acctestWorkspace-%d"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
+  location            = "${azurerm_azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_monitor_action_group" "test" {
   name                = "acctestActionGroup-%d"
-  resource_group_name = azurerm_resource_group.test.name
+  resource_group_name = "${azurerm_resource_group.test.name}"
   short_name          = "acctestag"
-
-  email_receiver {
-    name          = "sendtoadmin"
-    email_address = "admin@contoso.com"
-	}
 }
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestSqr-%d"
-	location            = azurerm_resource_group.test.location
+	location            = "${azurerm_resource_group.test.location}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
 	description         = "test alerting action"
 	enabled             = true
-	type                = "AlertingAction"
+	action_type         = "AlertingAction"
 
-	source {
-		query        = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
-		dataSourceId = azurerm_log_analytics_workspace.test.id
-		queryType    = "ResultCount"
+	query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	data_source_id = "${azurerm_log_analytics_workspace.test.id}"
+	query_type     = "ResultCount"
+
+	frequency   = 60
+  time_window = 60
+
+
+	severity    = 3
+	azns_action {
+		action_group = ["${azurerm_monitor_action_group.test.id}"]
+		email_subject = "Custom alert email subject"
 	}
 
-	schedule {
-		frequencyInMinutes  = 60
-    timeWindowInMinutes = 60
-	}
-
-	action {
-		severity     = 3
-    aznsAction {
-      actionGroup = [
-        azurerm_monitor_action_group.test.id
-      ]
-      emailSubject": "Custom alert email subject"
-		}
-
-    trigger {
-      thresholdOperator = "GreaterThan"
-      threshold         = 5000
-    }
+	trigger {
+		operator  = "GreaterThan"
+		threshold = 5000
 	}
 }
 
 data "azurerm_monitor_scheduled_query_rules" "test" {
-  name = azurerm_monitor_alerting_action.test.name
+  name = "${azurerm_monitor_scheduled_query_rules.test.name}"
 }
 `, rInt, location, rInt, rInt, rInt)
 }
@@ -213,70 +195,56 @@ resource "azurerm_resource_group" "test" {
 
 resource "azurerm_log_analytics_workspace" "test" {
   name                = "acctestWorkspace-%d"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_log_analytics_workspace" "test2" {
   name                = "acctestWorkspace2-%d"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_monitor_action_group" "test" {
   name                = "acctestActionGroup-%d"
-  resource_group_name = azurerm_resource_group.test.name
+  resource_group_name = "${azurerm_resource_group.test.name}"
   short_name          = "acctestag"
-
-  email_receiver {
-    name          = "sendtoadmin"
-    email_address = "admin@contoso.com"
-	}
 }
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestSqr-%d"
-	location            = azurerm_resource_group.test.location
+	location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 	description         = "test alerting action"
 	enabled             = true
-	type                = "AlertingAction"
+	action_type         = "AlertingAction"
 
-	source {
-		query        = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
-		dataSourceId = azurerm_log_analytics_workspace.test.id
-		queryType    = "ResultCount"
-		"authorizedResources": [
-			azurerm_log_analytics_workspace.test2.id
-      ],
+	query        = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	data_source_id = "${azurerm_log_analytics_workspace.test.id}"
+	query_type    = "ResultCount"
+	authorized_resources = ["${azurerm_log_analytics_workspace.test.id}", "${azurerm_log_analytics_workspace.test2.id}"]
+
+	frequency   = 60
+  time_window = 60
+
+	severity     = 3
+	azns_action {
+		action_group = ["${azurerm_monitor_action_group.test.id}"]
+		email_subject = "Custom alert email subject"
 	}
 
-	schedule {
-		frequencyInMinutes  = 60
-    timeWindowInMinutes = 60
-	}
-
-	action {
-		severity     = 3
-    aznsAction {
-      actionGroup = [
-        azurerm_monitor_action_group.test.id
-      ]
-      emailSubject": "Custom alert email subject"
-		}
-
-    trigger {
-      thresholdOperator = GreaterThan"
-      threshold         = 5000
-    }
+	trigger {
+		operator          = "GreaterThan"
+		threshold         = 5000
 	}
 }
 
 data "azurerm_monitor_scheduled_query_rules" "test" {
-  name = azurerm_monitor_alerting_action.test.name
+  name = "${azurerm_monitor_scheduled_query_rules.test.name}"
 }
 `, rInt, location, rInt, rInt, rInt, rInt)
 }

@@ -27,8 +27,7 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem: &schema.Schema{
-					Type:     schema.TypeString,
-					Computed: true,
+					Type: schema.TypeString,
 				},
 			},
 			"azns_action": {

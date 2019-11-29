@@ -92,10 +92,16 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 									"operator": {
 										Type:     schema.TypeString,
 										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											"Include",
+										}, false),
 									},
 									"values": {
-										Type:     schema.TypeString,
+										Type:     schema.TypeList,
 										Required: true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
 									},
 								},
 							},
@@ -171,7 +177,7 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"metric_trigger": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"metric_column": {
@@ -250,18 +256,18 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 
 	location := azure.NormalizeLocation(d.Get("location").(string))
 
-	action := insights.BasicAction{}
+	var action insights.BasicAction
 	switch actionType {
 	case "AlertingAction":
-		action = expandMonitorScheduledQueryRulesAlertingAction(d)
+		action = expandMonitorScheduledQueryRulesAlertingAction(d).(*insights.AlertingAction)
 	case "LogToMetricAction":
-		action = expandMonitorScheduledQueryRulesLogToMetricAction(d)
+		action = expandMonitorScheduledQueryRulesLogToMetricAction(d).(*insights.LogToMetricAction)
 	default:
-		return fmt.Errorf("Invalid action_type %q. Value must be either 'AlertingAction' or 'LogToMetricAction'", action_type)
+		return fmt.Errorf("Invalid action_type %q. Value must be either 'AlertingAction' or 'LogToMetricAction'", actionType)
 	}
 
-	source, _ := expandMonitorScheduledQueryRulesSource(d)
-	schedule, _ := expandMonitorScheduledQueryRulesSchedule(d)
+	source := expandMonitorScheduledQueryRulesSource(d)
+	schedule := expandMonitorScheduledQueryRulesSchedule(d)
 
 	t := d.Get("tags").(map[string]interface{})
 	expandedTags := tags.Expand(t)
@@ -271,8 +277,8 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 		LogSearchRule: &insights.LogSearchRule{
 			Description: utils.String(description),
 			Enabled:     enabled,
-			Source:      &source,
-			Schedule:    &schedule,
+			Source:      source,
+			Schedule:    schedule,
 			Action:      action,
 		},
 		Tags: expandedTags,
@@ -351,15 +357,18 @@ func resourceArmMonitorScheduledQueryRulesDelete(d *schema.ResourceData, meta in
 }
 
 func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *insights.AlertingAction {
-	aznsAction := d.Get("azns_action").(string).List()
-	severity := d.Get("severity").(string)
+	aznsActionRaw := d.Get("azns_action").(*schema.Set).List()
+	aznsAction := expandMonitorScheduledQueryRulesAznsAction(aznsActionRaw)
+	severity := d.Get("severity").(insights.AlertSeverity)
 	throttling := d.Get("throttling").(int)
-	trigger := d.Get("trigger").(*schema.Set).List()
+
+	triggerRaw := d.Get("trigger").(*schema.Set).List()
+	trigger := expandMonitorScheduledQueryRulesTrigger(triggerRaw)
 
 	action := insights.AlertingAction{
 		AznsAction:      &aznsAction,
 		Severity:        severity,
-		ThrottlingInMin: utils.Int(throttling),
+		ThrottlingInMin: utils.Int32(throttling),
 		Trigger:         &trigger,
 		OdataType:       insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,
 	}
@@ -367,13 +376,12 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 	return &action
 }
 
-func expandMonitorScheduledQueryRulesCriteria(input []interface{}) (*[]insights.Criteria, error) {
-	actionType := d.Get("action_type").(string)
+func expandMonitorScheduledQueryRulesAznsAction(input []interface{}) *insights.AznsActionGroup {
+	result := insights.AznsActionGroup{}
+	return &result
+}
 
-	if actionType != "LogToMetricAction" {
-		return nil, fmt.Errorf("Criteria only supported if action_type is 'LogToMetricAction'")
-	}
-
+func expandMonitorScheduledQueryRulesCriteria(input []interface{}) *[]insights.Criteria {
 	criteria := make([]insights.Criteria, 0)
 	for _, item := range input {
 		v := item.(map[string]interface{})
@@ -397,7 +405,7 @@ func expandMonitorScheduledQueryRulesCriteria(input []interface{}) (*[]insights.
 }
 
 func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) insights.LogToMetricAction {
-	criteria := d.Get("criteria").(string).List()
+	criteria := d.Get("criteria").(*schema.Set).List()
 
 	action := insights.LogToMetricAction{
 		Criteria:  &criteria,
@@ -418,8 +426,8 @@ func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.
 	timeWindow := d.Get("time_window").(int)
 
 	schedule := insights.Schedule{
-		FrequencyInMin:  utils.Int(frequency),
-		TimeWindowInMin: utils.Int(timeWindow),
+		FrequencyInMin:  utils.Int32(frequency),
+		TimeWindowInMin: utils.Int32(timeWindow),
 	}
 
 	return &schedule
@@ -439,6 +447,11 @@ func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.So
 	}
 
 	return &source
+}
+
+func expandMonitorScheduledQueryRulesTrigger(input *[]interface{}) *insights.TriggerCondition {
+	result := insights.TriggerCondition{}
+	return &result
 }
 
 func flattenAzureRmScheduledQueryRulesAznsAction(input *insights.AzNsActionGroup) []interface{} {

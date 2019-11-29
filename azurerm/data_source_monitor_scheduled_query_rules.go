@@ -195,23 +195,14 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	if action, ok := resp.Action.(*insights.AlertingAction); ok {
 		d.Set("action_type", "AlertingAction")
 		d.Set("azns_action", *action.AznsAction)
-		//flattenAzureRmScheduledQueryRulesAlertingAction(action)
 		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
-
-		if err := d.Set("trigger", flattenAzureRmScheduledQueryRulesAlertingAction(action.Trigger)); err != nil {
-			return fmt.Errorf("Error setting `trigger`: %+v", err)
-		}
+		d.Set("trigger", *action.Trigger)
 	}
 
 	if action, ok := resp.Action.(*insights.LogToMetricAction); ok {
 		d.Set("action_type", "LogToMetricAction")
-
-		flattenAzureRmScheduledQueryRulesAlertingAction(action)
-
-		if err := d.Set("criteria", flattenAzureRmScheduledQueryRulesCriteria(action.Criteria)); err != nil {
-			return fmt.Errorf("Error setting `criteria`: %+v", err)
-		}
+		d.Set("criteria", *action.Criteria)
 	}
 
 	if schedule := resp.Schedule; schedule != nil {
@@ -233,9 +224,7 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 		if source.Query != nil {
 			d.Set("query", *source.Query)
 		}
-		if source.QueryType != nil {
-			d.Set("query_type", string(*source.QueryType))
-		}
+		d.Set("query_type", string(source.QueryType))
 	}
 
 	// read-only props

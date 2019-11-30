@@ -193,20 +193,21 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(*resp.ID)
-	d.Set("description", resp.Description)
+	d.Set("description", *resp.Description)
 	d.Set("enabled", resp.Enabled)
 
-	if action, ok := resp.Action.(*insights.AlertingAction); ok {
+	switch action := resp.Action.(type) {
+	case *insights.AlertingAction:
 		d.Set("action_type", "Alerting")
 		d.Set("azns_action", *action.AznsAction)
 		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
 		d.Set("trigger", *action.Trigger)
-	}
-
-	if action, ok := resp.Action.(*insights.LogToMetricAction); ok {
+	case *insights.LogToMetricAction:
 		d.Set("action_type", "LogToMetric")
 		d.Set("criteria", *action.Criteria)
+	default:
+		return fmt.Errorf("Unknown action type in scheduled query rule %q (resource group %q): %T", name, resourceGroup, resp.Action)
 	}
 
 	if schedule := resp.Schedule; schedule != nil {
@@ -232,7 +233,7 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	// read-only props
-	d.Set("last_updated_time", resp.LastUpdatedTime)
+	d.Set("last_updated_time", *resp.LastUpdatedTime)
 	d.Set("provisioning_state", resp.ProvisioningState)
 
 	return nil

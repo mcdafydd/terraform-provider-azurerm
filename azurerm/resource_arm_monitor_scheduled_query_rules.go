@@ -339,16 +339,49 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 
 	d.Set("name", name)
 	d.Set("resource_group_name", resourceGroup)
-	if rule := resp.LogSearchRule; rule != nil {
-		d.Set("enabled", rule.Enabled)
-		d.Set("description", rule.Description)
-		if err := d.Set("source", flattenAzureRmScheduledQueryRulesSource(rule.Source)); err != nil {
-			return fmt.Errorf("Error setting `source`: %+v", err)
+	d.Set("enabled", resp.Enabled)
+	d.Set("description", *resp.Description)
+
+	switch action := resp.Action.(type) {
+	case *insights.AlertingAction:
+		d.Set("action_type", "Alerting")
+		d.Set("azns_action", *action.AznsAction)
+		d.Set("severity", string(action.Severity))
+		d.Set("throttling", *action.ThrottlingInMin)
+		d.Set("trigger", *action.Trigger)
+	case *insights.LogToMetricAction:
+		d.Set("action_type", "LogToMetric")
+		d.Set("criteria", *action.Criteria)
+	default:
+		return fmt.Errorf("Unknown action type in scheduled query rule %q (resource group %q): %T", name, resourceGroup, resp.Action)
+	}
+
+	if schedule := resp.Schedule; schedule != nil {
+		if schedule.FrequencyInMinutes != nil {
+			d.Set("frequency", *schedule.FrequencyInMinutes)
 		}
-		if err := d.Set("schedule", flattenAzureRmScheduledQueryRulesSchedule(rule.Schedule)); err != nil {
-			return fmt.Errorf("Error setting `schedule`: %+v", err)
+		if schedule.TimeWindowInMinutes != nil {
+			d.Set("time_window", *schedule.TimeWindowInMinutes)
 		}
 	}
+
+	if source := resp.Source; source != nil {
+		if source.AuthorizedResources != nil {
+			d.Set("authorized_resources", *source.AuthorizedResources)
+		}
+		if source.DataSourceID != nil {
+			d.Set("data_source_id", *source.DataSourceID)
+		}
+		if source.Query != nil {
+			d.Set("query", *source.Query)
+		}
+		d.Set("query_type", string(source.QueryType))
+	}
+
+	// read-only props
+	d.Set("last_updated_time", *resp.LastUpdatedTime)
+	d.Set("provisioning_state", resp.ProvisioningState)
+
 	return tags.FlattenAndSet(d, resp.Tags)
 }
 

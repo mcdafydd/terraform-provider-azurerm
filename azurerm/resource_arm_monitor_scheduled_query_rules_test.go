@@ -343,7 +343,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 		metric_name        = "Average_percent Idle Time"
 		dimension {
 			name             = "dimension"
-			operator         = "GreaterThan"
+			operator         = "Include"
 			values           = ["latency"]
 		}
 	}

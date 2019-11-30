@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -22,9 +23,15 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 		Read:   resourceArmMonitorScheduledQueryRulesRead,
 		Update: resourceArmMonitorScheduledQueryRulesCreateUpdate,
 		Delete: resourceArmMonitorScheduledQueryRulesDelete,
-
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Read:   schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
+			Delete: schema.DefaultTimeout(30 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -34,14 +41,17 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validate.NoEmptyStrings,
 			},
-			"resource_group_name": azure.SchemaResourceGroupNameForDataSource(),
+
+			"resource_group_name": azure.SchemaResourceGroupName(),
+
+			"location": azure.SchemaLocation(),
 
 			"action_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"AlertingAction",
-					"LogToMetricAction",
+					"Alerting",
+					"LogToMetric",
 				}, false),
 			},
 			"authorized_resources": {
@@ -59,7 +69,9 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 						"action_group": {
 							Type:     schema.TypeSet,
 							Required: true,
-							Elem:     schema.TypeString,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 						},
 						"custom_webhook_payload": {
 							Type:         schema.TypeString,
@@ -251,18 +263,23 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 
 	actionType := d.Get("action_type").(string)
 	description := d.Get("description").(string)
-	enabled := d.Get("enabled").(insights.Enabled)
+	enabledRaw := d.Get("enabled").(bool)
+
+	enabled := insights.True
+	if enabledRaw == false {
+		enabled = insights.False
+	}
 
 	location := azure.NormalizeLocation(d.Get("location").(string))
 
 	var action insights.BasicAction
 	switch actionType {
-	case "AlertingAction":
+	case "Alerting":
 		action = expandMonitorScheduledQueryRulesAlertingAction(d)
-	case "LogToMetricAction":
+	case "LogToMetric":
 		action = expandMonitorScheduledQueryRulesLogToMetricAction(d)
 	default:
-		return fmt.Errorf("Invalid action_type %q. Value must be either 'AlertingAction' or 'LogToMetricAction'", actionType)
+		return fmt.Errorf("Invalid action_type %q. Value must be either 'Alerting' or 'LogToMetric'", actionType)
 	}
 
 	source := expandMonitorScheduledQueryRulesSource(d)
@@ -418,8 +435,8 @@ func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) *
 func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.Schedule {
 	actionType := d.Get("action_type").(string)
 
-	if actionType != "AlertingAction" {
-		fmt.Errorf("'frequency' and 'time_window' only supported if action_type is 'AlertingAction'")
+	if actionType != "Alerting" {
+		fmt.Errorf("'frequency' and 'time_window' only supported if action_type is 'Alerting'")
 		return nil
 	}
 
@@ -438,13 +455,12 @@ func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.So
 	authorizedResources := d.Get("authorized_resources").(*schema.Set).List()
 	dataSourceID := d.Get("data_source_id").(string)
 	query := d.Get("query").(string)
-	queryType := d.Get("query_type").(insights.QueryType)
 
 	source := insights.Source{
 		AuthorizedResources: utils.ExpandStringSlice(authorizedResources),
 		DataSourceID:        utils.String(dataSourceID),
 		Query:               utils.String(query),
-		QueryType:           queryType,
+		QueryType:           insights.ResultCount,
 	}
 
 	return &source

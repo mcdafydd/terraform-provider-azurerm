@@ -42,7 +42,8 @@ func TestAccAzureRMMonitorScheduledQueryRules_AlertingAction(t *testing.T) {
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorScheduledQueryRules_alertingAction(ri, rs, testLocation())
+	location := testLocation()
+	config := testAccAzureRMMonitorScheduledQueryRules_alertingAction(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -69,7 +70,8 @@ func TestAccAzureRMMonitorScheduledQueryRules_AlertingActionCrossResource(t *tes
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(ri, rs, testLocation())
+	location := testLocation()
+	config := testAccAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -96,7 +98,8 @@ func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
 	resourceName := "azurerm_monitor_activity_log_alert.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
-	config := testAccAzureRMMonitorScheduledQueryRules_logToMetricAction(ri, rs, testLocation())
+	location := testLocation()
+	config := testAccAzureRMMonitorScheduledQueryRules_logToMetricAction(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -161,10 +164,9 @@ func testAccAzureRMMonitorScheduledQueryRules_basic(rInt int, location string) s
 	return fmt.Sprintf(`
 	resource "azurerm_monitor_scheduled_query_rules" "import" {
 		name                = "acctestSqr-%d"
-		location            = "${azurerm_resource_group.test.location}"
 		description         = "test alerting action"
 		enabled             = true
-		action_type         = "AlertingAction"
+		action_type         = "Alerting"
 
 		query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
 		data_source_id = "${azurerm_log_analytics_workspace.test.id}"
@@ -210,8 +212,8 @@ resource "azurerm_monitor_action_group" "test" {
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestsqr-%d"
-	location            = "${azurerm_resource_group.test.location}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
 	description         = "test log to metric action"
 	enabled             = true
 	action_type         = "LogToMetric"
@@ -273,8 +275,8 @@ resource "azurerm_monitor_action_group" "test" {
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestsqr-%d"
-	location            = "${azurerm_resource_group.test.location}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
 	description         = "test log to metric action"
 	enabled             = true
 	action_type         = "LogToMetric"
@@ -330,32 +332,19 @@ resource "azurerm_monitor_action_group" "test" {
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestsqr-%d"
   resource_group_name = "${azurerm_resource_group.test.name}"
-	location            = "${azurerm_resource_group.test.location}"
+  location            = "${azurerm_resource_group.test.location}"
 	description         = "test log to metric action"
 	enabled             = true
 	action_type         = "LogToMetric"
 
-  query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
 	data_source_id = "${azurerm_application_insights.test.id}"
-	query_type     = "ResultCount"
 
-	frequency   = 60
-  time_window = 60
-
-	severity     = 3
-	azns_action {
-		action_group = ["${azurerm_monitor_action_group.test.id}"]
-		email_subject = "Custom alert email subject"
-	}
-
-	trigger {
-		operator = "GreaterThan"
-		threshold         = 5000
-		metric_trigger {
-			operator            = "GreaterThan"
-			threshold           = 5
-			metric_trigger_type = "Consecutive"
-			metric_column       = "Computer"
+	criteria {
+		metric_name        = "Average_percent Idle Time"
+		dimension {
+			name             = "dimension"
+			operator         = "GreaterThan"
+			values           = ["latency"]
 		}
 	}
 }

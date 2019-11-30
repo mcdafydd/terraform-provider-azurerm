@@ -34,6 +34,7 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingAction(t *testin
 	dataSourceName := "data.azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := acctest.RandString(10)
+	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -41,7 +42,7 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingAction(t *testin
 		CheckDestroy: testCheckAzureRMLogProfileDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionConfig(ri, rs, testLocation()),
+				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionConfig(ri, rs, location),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
 					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
@@ -55,6 +56,7 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResou
 	dataSourceName := "data.azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := acctest.RandString(10)
+	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -62,7 +64,7 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResou
 		CheckDestroy: testCheckAzureRMLogProfileDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResourceConfig(ri, rs, testLocation()),
+				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResourceConfig(ri, rs, location),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
 					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
@@ -94,8 +96,8 @@ resource "azurerm_monitor_action_group" "test" {
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
 	name                = "acctestsqr-%d"
-	location            = "${azurerm_resource_group.test.location}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
 	description         = "test log to metric action"
 	enabled             = true
 	action_type         = "LogToMetric"
@@ -114,7 +116,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 	}
 
 	trigger {
-		operator = GreaterThan"
+		operator = "GreaterThan"
 		threshold         = 5000
 		metric_trigger {
 			operator            = "GreaterThan"
@@ -126,7 +128,8 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 }
 
 data "azurerm_monitor_scheduled_query_rules" "test" {
-  name = "${azurerm_monitor_scheduled_query_rules.test.name}"
+	name = "${azurerm_monitor_scheduled_query_rules.test.name}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
 }
 `, rInt, location, rInt, rInt, rInt)
 }
@@ -140,7 +143,7 @@ resource "azurerm_resource_group" "test" {
 
 resource "azurerm_log_analytics_workspace" "test" {
   name                = "acctestWorkspace-%d"
-  location            = "${azurerm_azurerm_resource_group.test.location}"
+  location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
   sku                 = "PerGB2018"
   retention_in_days   = 30
@@ -154,11 +157,11 @@ resource "azurerm_monitor_action_group" "test" {
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestSqr-%d"
-	location            = "${azurerm_resource_group.test.location}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
 	description         = "test alerting action"
 	enabled             = true
-	action_type         = "AlertingAction"
+	action_type         = "Alerting"
 
 	query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
 	data_source_id = "${azurerm_log_analytics_workspace.test.id}"
@@ -181,7 +184,8 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 }
 
 data "azurerm_monitor_scheduled_query_rules" "test" {
-  name = "${azurerm_monitor_scheduled_query_rules.test.name}"
+	name = "${azurerm_monitor_scheduled_query_rules.test.name}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
 }
 `, rInt, location, rInt, rInt, rInt)
 }
@@ -217,11 +221,11 @@ resource "azurerm_monitor_action_group" "test" {
 
 resource "azurerm_monitor_scheduled_query_rules" "test" {
   name                = "acctestSqr-%d"
-	location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
 	description         = "test alerting action"
 	enabled             = true
-	action_type         = "AlertingAction"
+	action_type         = "Alerting"
 
 	query        = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
 	data_source_id = "${azurerm_log_analytics_workspace.test.id}"
@@ -244,7 +248,8 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 }
 
 data "azurerm_monitor_scheduled_query_rules" "test" {
-  name = "${azurerm_monitor_scheduled_query_rules.test.name}"
+	name = "${azurerm_monitor_scheduled_query_rules.test.name}"
+	resource_group_name = "${azurerm_resource_group.test.name}"
 }
 `, rInt, location, rInt, rInt, rInt, rInt)
 }

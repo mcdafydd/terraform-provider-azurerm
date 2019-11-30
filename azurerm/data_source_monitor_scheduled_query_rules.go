@@ -17,7 +17,10 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+
 			"resource_group_name": azure.SchemaResourceGroupNameForDataSource(),
+
+			"location": azure.SchemaLocationForDataSource(),
 
 			"action_type": {
 				Type:     schema.TypeString,
@@ -38,7 +41,9 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 						"action_group": {
 							Type:     schema.TypeSet,
 							Computed: true,
-							Elem:     schema.TypeString,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 						},
 						"custom_webhook_payload": {
 							Type:     schema.TypeString,
@@ -192,7 +197,7 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	d.Set("enabled", resp.Enabled)
 
 	if action, ok := resp.Action.(*insights.AlertingAction); ok {
-		d.Set("action_type", "AlertingAction")
+		d.Set("action_type", "Alerting")
 		d.Set("azns_action", *action.AznsAction)
 		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
@@ -200,7 +205,7 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	if action, ok := resp.Action.(*insights.LogToMetricAction); ok {
-		d.Set("action_type", "LogToMetricAction")
+		d.Set("action_type", "LogToMetric")
 		d.Set("criteria", *action.Criteria)
 	}
 

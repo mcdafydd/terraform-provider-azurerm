@@ -92,14 +92,13 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"dimension": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
 										Type:     schema.TypeString,
 										Required: true,
-										Elem:     schema.TypeString,
 									},
 									"operator": {
 										Type:     schema.TypeString,
@@ -440,6 +439,16 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 
 func expandMonitorScheduledQueryRulesAznsAction(input []interface{}) *insights.AzNsActionGroup {
 	result := insights.AzNsActionGroup{}
+
+	for _, item := range input {
+		v := item.(map[string]interface{})
+		actionGroups := v["action_group"].([]interface{})
+
+		result.ActionGroup = utils.ExpandStringSlice(actionGroups)
+		result.EmailSubject = utils.String(v["email_subject"].(string))
+		result.CustomWebhookPayload = utils.String(v["custom_webhook_payload"].(string))
+	}
+
 	return &result
 }
 

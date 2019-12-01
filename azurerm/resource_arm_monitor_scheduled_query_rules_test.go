@@ -13,7 +13,7 @@ import (
 )
 
 /*func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
-	resourceName := "azurerm_monitor_activity_log_alert.test"
+	resourceName := "azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
 
@@ -39,7 +39,7 @@ import (
 }*/
 
 func TestAccAzureRMMonitorScheduledQueryRules_AlertingAction(t *testing.T) {
-	resourceName := "azurerm_monitor_activity_log_alert.test"
+	resourceName := "azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	location := testLocation()
@@ -67,7 +67,7 @@ func TestAccAzureRMMonitorScheduledQueryRules_AlertingAction(t *testing.T) {
 }
 
 func TestAccAzureRMMonitorScheduledQueryRules_AlertingActionCrossResource(t *testing.T) {
-	resourceName := "azurerm_monitor_activity_log_alert.test"
+	resourceName := "azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	location := testLocation()
@@ -95,7 +95,7 @@ func TestAccAzureRMMonitorScheduledQueryRules_AlertingActionCrossResource(t *tes
 }
 
 func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
-	resourceName := "azurerm_monitor_activity_log_alert.test"
+	resourceName := "azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	location := testLocation()
@@ -125,7 +125,7 @@ func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
 }
 
 /*func TestAccAzureRMMonitorScheduledQueryRules_basicAndCompleteUpdate(t *testing.T) {
-	resourceName := "azurerm_monitor_activity_log_alert.test"
+	resourceName := "azurerm_monitor_scheduled_query_rules.test"
 	ri := tf.AccRandTimeInt()
 	rs := strings.ToLower(acctest.RandString(11))
 	location := testLocation()
@@ -216,7 +216,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
   location            = "${azurerm_resource_group.test.location}"
 	description         = "test log to metric action"
 	enabled             = true
-	action_type         = "LogToMetric"
+	action_type         = "Alerting"
 
 	data_source_id = "${azurerm_application_insights.test.id}"
   query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
@@ -279,7 +279,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
   location            = "${azurerm_resource_group.test.location}"
 	description         = "test log to metric action"
 	enabled             = true
-	action_type         = "LogToMetric"
+	action_type         = "Alerting"
 
 	authorized_resources = ["${azurerm_application_insights.test.id}", "${azurerm_log_analytics_workspace.test.id}"]
 	data_source_id       = "${azurerm_application_insights.test.id}"
@@ -356,7 +356,7 @@ func testCheckAzureRMMonitorScheduledQueryRulesDestroy(s *terraform.State) error
 	ctx := testAccProvider.Meta().(*ArmClient).StopContext
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_monitor_activity_log_alert" {
+		if rs.Type != "azurerm_monitor_scheduled_query_rules" {
 			continue
 		}
 

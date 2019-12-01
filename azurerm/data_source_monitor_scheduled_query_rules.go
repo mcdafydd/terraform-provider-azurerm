@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -122,7 +123,7 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 				Computed: true,
 			},
 			"severity": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"throttling": {
@@ -205,7 +206,11 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	case insights.AlertingAction:
 		d.Set("action_type", "Alerting")
 		d.Set("azns_action", *action.AznsAction)
-		d.Set("severity", string(action.Severity))
+		severity, err := strconv.Atoi(string(action.Severity))
+		if err != nil {
+			return fmt.Errorf("Error converting action.Severity %q in query rule %q to int (resource group %q): %+v", action.Severity, name, resourceGroup, err)
+		}
+		d.Set("severity", severity)
 		d.Set("throttling", *action.ThrottlingInMin)
 		d.Set("trigger", *action.Trigger)
 	case insights.LogToMetricAction:

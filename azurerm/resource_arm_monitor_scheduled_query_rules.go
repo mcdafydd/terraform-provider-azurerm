@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
@@ -163,15 +164,15 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 				}, false),
 			},
 			"severity": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Optional: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					"0",
-					"1",
-					"2",
-					"3",
-					"4",
-				}, false),
+				ValidateFunc: validation.IntInSlice([]int{
+					0,
+					1,
+					2,
+					3,
+					4,
+				}),
 			},
 			"throttling": {
 				Type:     schema.TypeInt,
@@ -353,7 +354,11 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 	case insights.AlertingAction:
 		d.Set("action_type", "Alerting")
 		d.Set("azns_action", *action.AznsAction)
-		d.Set("severity", string(action.Severity))
+		severity, err := strconv.Atoi(string(action.Severity))
+		if err != nil {
+			return fmt.Errorf("Error converting action.Severity %q in query rule %q to int (resource group %q): %+v", action.Severity, name, resourceGroup, err)
+		}
+		d.Set("severity", severity)
 		d.Set("throttling", *action.ThrottlingInMin)
 		d.Set("trigger", *action.Trigger)
 	case insights.LogToMetricAction:
@@ -415,7 +420,8 @@ func resourceArmMonitorScheduledQueryRulesDelete(d *schema.ResourceData, meta in
 func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *insights.AlertingAction {
 	aznsActionRaw := d.Get("azns_action").(*schema.Set).List()
 	aznsAction := expandMonitorScheduledQueryRulesAznsAction(aznsActionRaw)
-	severity := d.Get("severity").(insights.AlertSeverity)
+	severityRaw := d.Get("severity").(int)
+	severity := strconv.Itoa(severityRaw)
 	throttling := d.Get("throttling").(int32)
 
 	triggerRaw := d.Get("trigger").(*schema.Set).List()
@@ -423,7 +429,7 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 
 	action := insights.AlertingAction{
 		AznsAction:      aznsAction,
-		Severity:        severity,
+		Severity:        insights.AlertSeverity(severity),
 		ThrottlingInMin: utils.Int32(throttling),
 		Trigger:         trigger,
 		OdataType:       insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,

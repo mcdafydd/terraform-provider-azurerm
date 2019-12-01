@@ -325,8 +325,9 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 		return err
 	}
 	resourceGroup := id.ResourceGroup
-	name := id.Path["ScheduledQueryRules"]
+	name := id.Path["scheduledqueryrules"]
 
+	fmt.Printf("HI THERE %+v", id)
 	resp, err := client.Get(ctx, resourceGroup, name)
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
@@ -339,17 +340,23 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 
 	d.Set("name", name)
 	d.Set("resource_group_name", resourceGroup)
-	d.Set("enabled", resp.Enabled)
+
+	if resp.Enabled == insights.True {
+		d.Set("enabled", true)
+	} else {
+		d.Set("enabled", false)
+	}
+
 	d.Set("description", *resp.Description)
 
 	switch action := resp.Action.(type) {
-	case *insights.AlertingAction:
+	case insights.AlertingAction:
 		d.Set("action_type", "Alerting")
 		d.Set("azns_action", *action.AznsAction)
 		d.Set("severity", string(action.Severity))
 		d.Set("throttling", *action.ThrottlingInMin)
 		d.Set("trigger", *action.Trigger)
-	case *insights.LogToMetricAction:
+	case insights.LogToMetricAction:
 		d.Set("action_type", "LogToMetric")
 		d.Set("criteria", *action.Criteria)
 	default:
@@ -394,7 +401,7 @@ func resourceArmMonitorScheduledQueryRulesDelete(d *schema.ResourceData, meta in
 		return err
 	}
 	resourceGroup := id.ResourceGroup
-	name := id.Path["ScheduledQueryRules"]
+	name := id.Path["scheduledqueryrules"]
 
 	if resp, err := client.Delete(ctx, resourceGroup, name); err != nil {
 		if !response.WasNotFound(resp.Response) {

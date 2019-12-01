@@ -424,7 +424,7 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 	throttling := d.Get("throttling").(int32)
 
 	triggerRaw := d.Get("trigger").(*schema.Set).List()
-	trigger := expandMonitorScheduledQueryRulesTrigger(&triggerRaw)
+	trigger := expandMonitorScheduledQueryRulesTrigger(triggerRaw)
 
 	action := insights.AlertingAction{
 		AznsAction:      aznsAction,
@@ -488,13 +488,6 @@ func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) *
 }
 
 func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.Schedule {
-	actionType := d.Get("action_type").(string)
-
-	if actionType != "Alerting" {
-		fmt.Errorf("'frequency' and 'time_window' only supported if action_type is 'Alerting'")
-		return nil
-	}
-
 	frequency := d.Get("frequency").(int32)
 	timeWindow := d.Get("time_window").(int32)
 
@@ -504,6 +497,20 @@ func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.
 	}
 
 	return &schedule
+}
+
+func expandMonitorScheduledQueryRulesMetricTrigger(input []interface{}) *insights.LogMetricTrigger {
+	result := insights.LogMetricTrigger{}
+
+	for _, item := range input {
+		v := item.(map[string]interface{})
+		result.ThresholdOperator = v["operator"].(insights.ConditionalOperator)
+		result.Threshold = utils.Float(v["threshold"].(float64))
+		result.MetricTriggerType = v["metric_trigger_type"].(insights.MetricTriggerType)
+		result.MetricColumn = utils.String(v["metric_column"].(string))
+	}
+
+	return &result
 }
 
 func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.Source {
@@ -521,8 +528,18 @@ func expandMonitorScheduledQueryRulesSource(d *schema.ResourceData) *insights.So
 	return &source
 }
 
-func expandMonitorScheduledQueryRulesTrigger(input *[]interface{}) *insights.TriggerCondition {
+func expandMonitorScheduledQueryRulesTrigger(input []interface{}) *insights.TriggerCondition {
 	result := insights.TriggerCondition{}
+
+	for _, item := range input {
+		v := item.(map[string]interface{})
+		metricTriggerRaw := v["metric_trigger"].([]interface{})
+
+		result.ThresholdOperator = v["operator"].(insights.ConditionalOperator)
+		result.Threshold = utils.Float(v["threshold"].(float64))
+		result.MetricTrigger = expandMonitorScheduledQueryRulesMetricTrigger(metricTriggerRaw)
+	}
+
 	return &result
 }
 

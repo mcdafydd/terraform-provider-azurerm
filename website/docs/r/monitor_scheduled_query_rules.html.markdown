@@ -128,7 +128,7 @@ The following arguments are only supported when `action_type` is `AlertingAction
 * `frequency` - (Optional) Frequency (in minutes) at which rule condition should be evaluated.  Required when `action_type` is `AlertingAction`.
 * `query` - (Optional) Log search query.  Required when `action_type` is `AlertingAction`.
 * `query_type` - (Optional) Must equal "ResultCount" for now.  Required when `action_type` is `AlertingAction`.
-* `severity` - (Optional) Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
+* `severity` - (Optional) Severity of the alert. Possible values include: 0, 1, 2, 3, or 4.
 * `time_window` - (Optional) Time window for which data needs to be fetched for query (should be greater than or equal to `frequency`).  Required when `action_type` is `AlertingAction`.
 * `trigger` - (Optional) The condition that results in the alert rule being run.  Required when `action_type` is `AlertingAction`.
 

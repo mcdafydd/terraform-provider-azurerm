@@ -15,6 +15,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/validate"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/features"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/tags"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/timeouts"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
@@ -244,7 +245,8 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 
 func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).Monitor.ScheduledQueryRulesClient
-	ctx := meta.(*ArmClient).StopContext
+	ctx, cancel := timeouts.ForCreateUpdate(meta.(*ArmClient).StopContext, d)
+	defer cancel()
 
 	name := d.Get("name").(string)
 	resourceGroup := d.Get("resource_group_name").(string)
@@ -271,7 +273,7 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 		enabled = insights.False
 	}
 
-	location := azure.NormalizeLocation(d.Get("location").(string))
+	location := azure.NormalizeLocation(d.Get("location"))
 
 	var action insights.BasicAction
 	switch actionType {
@@ -319,7 +321,8 @@ func resourceArmMonitorScheduledQueryRulesCreateUpdate(d *schema.ResourceData, m
 
 func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).Monitor.ScheduledQueryRulesClient
-	ctx := meta.(*ArmClient).StopContext
+	ctx, cancel := timeouts.ForRead(meta.(*ArmClient).StopContext, d)
+	defer cancel()
 
 	id, err := azure.ParseAzureResourceID(d.Id())
 	if err != nil {
@@ -340,6 +343,9 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 
 	d.Set("name", name)
 	d.Set("resource_group_name", resourceGroup)
+	if location := resp.Location; location != nil {
+		d.Set("location", azure.NormalizeLocation(*location))
+	}
 
 	if resp.Enabled == insights.True {
 		d.Set("enabled", true)
@@ -398,7 +404,8 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 
 func resourceArmMonitorScheduledQueryRulesDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).Monitor.ScheduledQueryRulesClient
-	ctx := meta.(*ArmClient).StopContext
+	ctx, cancel := timeouts.ForDelete(meta.(*ArmClient).StopContext, d)
+  defer cancel()
 
 	id, err := azure.ParseAzureResourceID(d.Id())
 	if err != nil {
@@ -566,6 +573,9 @@ func flattenAzureRmScheduledQueryRulesCriteria(input *[]insights.Criteria) []int
 		for _, criteria := range *input {
 			v := make(map[string]interface{})
 
+			/*if err = d.Set("azure_function_receiver", flattenMonitorActionGroupAzureFunctionReceiver(group.AzureFunctionReceivers)); err != nil {
+				return fmt.Errorf("Error setting `azure_function_receiver`: %+v", err)
+			}*/
 			v["dimension"] = flattenAzureRmScheduledQueryRulesDimension(criteria.Dimensions)
 			v["metric_name"] = *criteria.MetricName
 
@@ -582,9 +592,18 @@ func flattenAzureRmScheduledQueryRulesDimension(input *[]insights.Dimension) []i
 	if input != nil {
 		for _, dimension := range *input {
 			v := make(map[string]interface{})
-			v["name"] = *dimension.Name
-			v["operator"] = *dimension.Operator
-			v["values"] = dimension.Values
+
+			if dimension.Name != nil {
+				v["name"] = *dimension.Name
+			}
+
+			if dimension.Operator != nil {
+				v["operator"] = *dimension.Operator
+			}
+
+			if dimension.Values != nil {
+				v["values"] = *dimension.Values
+			}
 
 			result = append(result, v)
 		}
@@ -593,9 +612,25 @@ func flattenAzureRmScheduledQueryRulesDimension(input *[]insights.Dimension) []i
 	return result
 }
 
-func flattenAzureRmScheduledQueryRulesMetricTrigger(input *insights.MetricTrigger) []interface{} {
+func flattenAzureRmScheduledQueryRulesMetricTrigger(input *insights.LogMetricTrigger) []interface{} {
 	result := make(map[string]interface{})
-	return &result
+
+	if input == nil {
+		return []interface{}{}
+	}
+
+	result["operator"] = string(input.ThresholdOperator)
+
+	if input.Threshold != nil {
+		result["threshold"] = *input.Threshold
+	}
+
+	result["metric_trigger_type"] = string(input.MetricTriggerType)
+
+	if input.MetricColumn != nil {
+		result["metric_column"] = *input.MetricColumn
+	}
+	return []interface{}{result}
 }
 
 func flattenAzureRmScheduledQueryRulesSchedule(input *insights.Schedule) []interface{} {
@@ -606,11 +641,11 @@ func flattenAzureRmScheduledQueryRulesSchedule(input *insights.Schedule) []inter
 	}
 
 	if input.FrequencyInMinutes != nil {
-		result["frequency_in_minutes"] = *input.FrequencyInMinutes
+		result["frequency_in_minutes"] = int(*input.FrequencyInMinutes)
 	}
 
 	if input.TimeWindowInMinutes != nil {
-		result["time_window_in_minutes"] = *input.TimeWindowInMinutes
+		result["time_window_in_minutes"] = int(*input.TimeWindowInMinutes)
 	}
 
 	return []interface{}{result}
@@ -628,7 +663,7 @@ func flattenAzureRmScheduledQueryRulesSource(input *insights.Source) []interface
 	if input.Query != nil {
 		result["query"] = *input.Query
 	}
-	result["query_type"] = input.QueryType
+	result["query_type"] = string(input.QueryType)
 
 	return []interface{}{result}
 }
@@ -636,14 +671,14 @@ func flattenAzureRmScheduledQueryRulesSource(input *insights.Source) []interface
 func flattenAzureRmScheduledQueryRulesTrigger(input *insights.TriggerCondition) []interface{} {
 	result := make(map[string]interface{})
 
-	if input.MetricTrigger != nil {
-		result["metric_trigger"] = flattenAzureRmScheduledQueryRulesMetricTrigger(input.MetricTrigger)
-	}
-	if input.ThresholdOperator != "" {
-		result["operator"] = input.ThresholdOperator
-	}
+	result["operator"] = string(input.ThresholdOperator)
+
 	if input.Threshold != nil {
 		result["threshold"] = *input.Threshold
+	}
+
+	if input.MetricTrigger != nil {
+		result["metric_trigger"] = flattenAzureRmScheduledQueryRulesMetricTrigger(input.MetricTrigger)
 	}
 
 	return []interface{}{result}

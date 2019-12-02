@@ -5,38 +5,13 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
-
-/*func TestAccAzureRMMonitorScheduledQueryRules_basic(t *testing.T) {
-	resourceName := "azurerm_monitor_scheduled_query_rules.test"
-	ri := tf.AccRandTimeInt()
-	location := testLocation()
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMMonitorScheduledQueryRulesDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAzureRMMonitorScheduledQueryRules_basic(ri, location),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-				),
-			},
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-	return
-}*/
 
 func TestAccAzureRMMonitorScheduledQueryRules_AlertingAction(t *testing.T) {
 	resourceName := "azurerm_monitor_scheduled_query_rules.test"
@@ -122,73 +97,9 @@ func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
 	return
 }
 
-/*func TestAccAzureRMMonitorScheduledQueryRules_basicAndCompleteUpdate(t *testing.T) {
-	resourceName := "azurerm_monitor_scheduled_query_rules.test"
-	ri := tf.AccRandTimeInt()
-	rs := strings.ToLower(acctest.RandString(11))
-	location := testLocation()
-	basicConfig := testAccAzureRMMonitorScheduledQueryRules_basic(ri, location)
-	completeConfig := testAccAzureRMMonitorScheduledQueryRules_complete(ri, rs, location)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMMonitorActionGroupDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: basicConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-				),
-			},
-			{
-				Config: completeConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-				),
-			},
-			{
-				Config: basicConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
-				),
-			},
-		},
-	})
-	return
-}*/
-/*
-func testAccAzureRMMonitorScheduledQueryRules_basic(rInt int, location string) string {
-	return fmt.Sprintf(`
-	resource "azurerm_monitor_scheduled_query_rules" "import" {
-		name                = "acctestSqr-%d"
-		description         = "test alerting action"
-		enabled             = true
-		action_type         = "Alerting"
-
-		query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
-		data_source_id = "${azurerm_log_analytics_workspace.test.id}"
-		query_type     = "ResultCount"
-
-		frequency   = 60
-		time_window = 60
-
-
-		severity    = 3
-		azns_action {
-			action_group = ["${azurerm_monitor_action_group.test.id}"]
-			email_subject = "Custom alert email subject"
-		}
-
-		trigger {
-			operator  = "GreaterThan"
-			threshold = 5000
-		}
-	}
-
-`, rInt, location, rInt)
-}*/
 func testAccAzureRMMonitorScheduledQueryRules_alertingAction(rInt int, rString, location string) string {
+	ts := time.Now().Format(time.RFC3339)
+
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
@@ -217,7 +128,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 	action_type         = "Alerting"
 
 	data_source_id = "${azurerm_application_insights.test.id}"
-  query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+  query          = "let d=datatable(TimeGenerated: datetime, usage_percent: double) [  '%s', 25.4, '%s', 75.4 ]; d | summarize AggregatedValue=avg(usage_percent) by bin(TimeGenerated, 1h"
 	query_type     = "ResultCount"
 
 	frequency   = 60
@@ -241,10 +152,12 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 		}
 	}
 }
-`, rInt, location, rInt, rInt, rInt)
+`, rInt, location, rInt, rInt, rInt, ts, ts)
 }
 
 func testAccAzureRMMonitorScheduledQueryRules_alertingActionCrossResource(rInt int, rString, location string) string {
+	ts := time.Now().Format(time.RFC3339)
+
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
@@ -282,7 +195,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 
 	authorized_resources = ["${azurerm_application_insights.test.id}", "${azurerm_log_analytics_workspace.test.id}"]
 	data_source_id       = "${azurerm_application_insights.test.id}"
-  query                = "union requests, workspace(${azurerm_log_analytics_workspace.test.name}).Heartbeat"
+  query                = "let d=datatable(TimeGenerated: datetime, usage_percent: double) [  '%s', 25.4, '%s', 75.4 ]; d | summarize AggregatedValue=avg(usage_percent) by bin(TimeGenerated, 1h"
 	query_type           = "ResultCount"
 
 	frequency   = 60
@@ -305,7 +218,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 		}
 	}
 }
-`, rInt, location, rInt, rInt, rInt, rInt)
+`, rInt, location, rInt, rInt, rInt, rInt, ts, ts)
 }
 
 func testAccAzureRMMonitorScheduledQueryRules_logToMetricAction(rInt int, rString, location string) string {

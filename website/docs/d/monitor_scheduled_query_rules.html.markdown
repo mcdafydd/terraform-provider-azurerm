@@ -43,7 +43,7 @@ output "query_rule_id" {
 * `query` - Log search query. Required for action type - `alerting_action`.
 * `query_type` - Must equal "ResultCount".
 * `time_window` - Time window for which data needs to be fetched for query (should be greater than or equal to frequency_in_minutes).
-* `severity` - Severity of the alert. Possible values include: 'Zero', 'One', 'Two', 'Three', 'Four'.
+* `severity` - Severity of the alert. Possible values include: 0, 1, 2, 3, or 4.
 * `throttling` - Time (in minutes) for which Alerts should be throttled or suppressed.
 * `trigger` - A `trigger` block as defined below. The condition that results in the alert rule being run.
 

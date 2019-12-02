@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -37,15 +38,13 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingAction(t *testin
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLogProfileDestroy,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionConfig(ri, rs, location),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
-					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
 				),
 			},
 		},
@@ -59,15 +58,13 @@ func TestAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResou
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLogProfileDestroy,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResourceConfig(ri, rs, location),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataSourceName, "id"),
-					resource.TestCheckResourceAttr(dataSourceName, "enabled", "true"),
 				),
 			},
 		},
@@ -122,6 +119,8 @@ data "azurerm_monitor_scheduled_query_rules" "test" {
 }
 
 func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionConfig(rInt int, rString string, location string) string {
+	ts := time.Now().Format(time.RFC3339)
+
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
@@ -150,7 +149,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 	enabled             = true
 	action_type         = "Alerting"
 
-	query          = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	query          = "let d=datatable(TimeGenerated: datetime, usage_percent: double) [  '%s', 25.4, '%s', 75.4 ]; d | summarize AggregatedValue=avg(usage_percent) by bin(TimeGenerated, 1h"
 	data_source_id = "${azurerm_log_analytics_workspace.test.id}"
 	query_type     = "ResultCount"
 
@@ -174,10 +173,12 @@ data "azurerm_monitor_scheduled_query_rules" "test" {
 	name = "${azurerm_monitor_scheduled_query_rules.test.name}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
 }
-`, rInt, location, rInt, rInt, rInt)
+`, rInt, location, rInt, rInt, rInt, ts, ts)
 }
 
 func testAccDataSourceAzureRMMonitorScheduledQueryRules_alertingActionCrossResourceConfig(rInt int, rString string, location string) string {
+	ts := time.Now().Format(time.RFC3339)
+
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
@@ -214,7 +215,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 	enabled             = true
 	action_type         = "Alerting"
 
-	query        = "let data=datatable(id:int, value:string) [1, 'test1', 2, 'testtwo']; data | extend strlen = strlen(value)"
+	query        = "let d=datatable(TimeGenerated: datetime, usage_percent: double) [  '%s', 25.4, '%s', 75.4 ]; d | summarize AggregatedValue=avg(usage_percent) by bin(TimeGenerated, 1h)"
 	data_source_id = "${azurerm_log_analytics_workspace.test.id}"
 	query_type    = "ResultCount"
 	authorized_resources = ["${azurerm_log_analytics_workspace.test.id}", "${azurerm_log_analytics_workspace.test2.id}"]
@@ -238,5 +239,5 @@ data "azurerm_monitor_scheduled_query_rules" "test" {
 	name = "${azurerm_monitor_scheduled_query_rules.test.name}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
 }
-`, rInt, location, rInt, rInt, rInt, rInt)
+`, rInt, location, rInt, rInt, rInt, rInt, ts, ts)
 }

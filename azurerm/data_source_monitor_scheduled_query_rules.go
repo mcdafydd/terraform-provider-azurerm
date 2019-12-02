@@ -3,16 +3,24 @@ package azurerm
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/azure"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/tags"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/timeouts"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
 func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceArmMonitorScheduledQueryRulesRead,
+
+		Timeouts: &schema.ResourceTimeout{
+			Read: schema.DefaultTimeout(5 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -174,13 +182,16 @@ func dataSourceArmMonitorScheduledQueryRules() *schema.Resource {
 					},
 				},
 			},
+
+			"tags": tags.SchemaDataSource(),
 		},
 	}
 }
 
 func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).Monitor.ScheduledQueryRulesClient
-	ctx := meta.(*ArmClient).StopContext
+	ctx, cancel := timeouts.ForRead(meta.(*ArmClient).StopContext, d)
+	defer cancel()
 
 	name := d.Get("name").(string)
 	resourceGroup := d.Get("resource_group_name").(string)
@@ -194,8 +205,12 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(*resp.ID)
-	d.Set("description", *resp.Description)
+	d.Set("resource_group_name", resourceGroup)
+	if location := resp.Location; location != nil {
+		d.Set("location", azure.NormalizeLocation(*location))
+	}
 
+	d.Set("description", *resp.Description)
 	if resp.Enabled == insights.True {
 		d.Set("enabled", true)
 	} else {
@@ -246,5 +261,5 @@ func dataSourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta in
 	d.Set("last_updated_time", *resp.LastUpdatedTime)
 	d.Set("provisioning_state", resp.ProvisioningState)
 
-	return nil
+	return tags.FlattenAndSet(d, resp.Tags)
 }

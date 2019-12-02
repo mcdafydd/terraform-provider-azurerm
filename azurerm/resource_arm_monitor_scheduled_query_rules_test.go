@@ -111,13 +111,11 @@ func TestAccAzureRMMonitorScheduledQueryRules_LogToMetricAction(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMMonitorScheduledQueryRulesExists(resourceName),
 				),
-				PreventDiskCleanup: true,
 			},
 			{
-				PreventDiskCleanup: true,
-				ResourceName:       resourceName,
-				ImportState:        true,
-				ImportStateVerify:  true,
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -229,6 +227,7 @@ resource "azurerm_monitor_scheduled_query_rules" "test" {
 	azns_action {
 		action_group = ["${azurerm_monitor_action_group.test.id}"]
 		email_subject = "Custom alert email subject"
+		custom_webhook_payload = "{}"
 	}
 
 	trigger {

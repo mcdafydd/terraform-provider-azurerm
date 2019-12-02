@@ -77,7 +77,8 @@ func resourceArmMonitorScheduledQueryRules() *schema.Resource {
 						"custom_webhook_payload": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validate.URLIsHTTPOrHTTPS,
+							Default:      "{}",
+							ValidateFunc: validation.ValidateJsonString,
 						},
 						"email_subject": {
 							Type:     schema.TypeString,
@@ -327,7 +328,6 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 	resourceGroup := id.ResourceGroup
 	name := id.Path["scheduledqueryrules"]
 
-	fmt.Printf("HI THERE %+v", id)
 	resp, err := client.Get(ctx, resourceGroup, name)
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
@@ -352,17 +352,17 @@ func resourceArmMonitorScheduledQueryRulesRead(d *schema.ResourceData, meta inte
 	switch action := resp.Action.(type) {
 	case insights.AlertingAction:
 		d.Set("action_type", "Alerting")
-		d.Set("azns_action", *action.AznsAction)
+		d.Set("azns_action", flattenAzureRmScheduledQueryRulesAznsAction(action.AznsAction))
 		severity, err := strconv.Atoi(string(action.Severity))
 		if err != nil {
 			return fmt.Errorf("Error converting action.Severity %q in query rule %q to int (resource group %q): %+v", action.Severity, name, resourceGroup, err)
 		}
 		d.Set("severity", severity)
 		d.Set("throttling", *action.ThrottlingInMin)
-		d.Set("trigger", *action.Trigger)
+		d.Set("trigger", flattenAzureRmScheduledQueryRulesTrigger(action.Trigger))
 	case insights.LogToMetricAction:
 		d.Set("action_type", "LogToMetric")
-		d.Set("criteria", *action.Criteria)
+		d.Set("criteria", flattenAzureRmScheduledQueryRulesCriteria(action.Criteria))
 	default:
 		return fmt.Errorf("Unknown action type in scheduled query rule %q (resource group %q): %T", name, resourceGroup, resp.Action)
 	}
@@ -421,7 +421,7 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 	aznsAction := expandMonitorScheduledQueryRulesAznsAction(aznsActionRaw)
 	severityRaw := d.Get("severity").(int)
 	severity := strconv.Itoa(severityRaw)
-	throttling := d.Get("throttling").(int32)
+	throttling := d.Get("throttling").(int)
 
 	triggerRaw := d.Get("trigger").(*schema.Set).List()
 	trigger := expandMonitorScheduledQueryRulesTrigger(triggerRaw)
@@ -429,7 +429,7 @@ func expandMonitorScheduledQueryRulesAlertingAction(d *schema.ResourceData) *ins
 	action := insights.AlertingAction{
 		AznsAction:      aznsAction,
 		Severity:        insights.AlertSeverity(severity),
-		ThrottlingInMin: utils.Int32(throttling),
+		ThrottlingInMin: utils.Int32(int32(throttling)),
 		Trigger:         trigger,
 		OdataType:       insights.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction,
 	}
@@ -442,7 +442,7 @@ func expandMonitorScheduledQueryRulesAznsAction(input []interface{}) *insights.A
 
 	for _, item := range input {
 		v := item.(map[string]interface{})
-		actionGroups := v["action_group"].([]interface{})
+		actionGroups := v["action_group"].(*schema.Set).List()
 
 		result.ActionGroup = utils.ExpandStringSlice(actionGroups)
 		result.EmailSubject = utils.String(v["email_subject"].(string))
@@ -458,7 +458,7 @@ func expandMonitorScheduledQueryRulesCriteria(input []interface{}) *[]insights.C
 		v := item.(map[string]interface{})
 
 		dimensions := make([]insights.Dimension, 0)
-		for _, dimension := range v["dimension"].([]interface{}) {
+		for _, dimension := range v["dimension"].(*schema.Set).List() {
 			dVal := dimension.(map[string]interface{})
 			dimensions = append(dimensions, insights.Dimension{
 				Name:     utils.String(dVal["name"].(string)),
@@ -488,12 +488,12 @@ func expandMonitorScheduledQueryRulesLogToMetricAction(d *schema.ResourceData) *
 }
 
 func expandMonitorScheduledQueryRulesSchedule(d *schema.ResourceData) *insights.Schedule {
-	frequency := d.Get("frequency").(int32)
-	timeWindow := d.Get("time_window").(int32)
+	frequency := d.Get("frequency").(int)
+	timeWindow := d.Get("time_window").(int)
 
 	schedule := insights.Schedule{
-		FrequencyInMinutes:  utils.Int32(frequency),
-		TimeWindowInMinutes: utils.Int32(timeWindow),
+		FrequencyInMinutes:  utils.Int32(int32(frequency)),
+		TimeWindowInMinutes: utils.Int32(int32(timeWindow)),
 	}
 
 	return &schedule
@@ -504,9 +504,9 @@ func expandMonitorScheduledQueryRulesMetricTrigger(input []interface{}) *insight
 
 	for _, item := range input {
 		v := item.(map[string]interface{})
-		result.ThresholdOperator = v["operator"].(insights.ConditionalOperator)
+		result.ThresholdOperator = insights.ConditionalOperator(v["operator"].(string))
 		result.Threshold = utils.Float(v["threshold"].(float64))
-		result.MetricTriggerType = v["metric_trigger_type"].(insights.MetricTriggerType)
+		result.MetricTriggerType = insights.MetricTriggerType(v["metric_trigger_type"].(string))
 		result.MetricColumn = utils.String(v["metric_column"].(string))
 	}
 
@@ -533,9 +533,9 @@ func expandMonitorScheduledQueryRulesTrigger(input []interface{}) *insights.Trig
 
 	for _, item := range input {
 		v := item.(map[string]interface{})
-		metricTriggerRaw := v["metric_trigger"].([]interface{})
+		metricTriggerRaw := v["metric_trigger"].(*schema.Set).List()
 
-		result.ThresholdOperator = v["operator"].(insights.ConditionalOperator)
+		result.ThresholdOperator = insights.ConditionalOperator(v["operator"].(string))
 		result.Threshold = utils.Float(v["threshold"].(float64))
 		result.MetricTrigger = expandMonitorScheduledQueryRulesMetricTrigger(metricTriggerRaw)
 	}
@@ -551,8 +551,8 @@ func flattenAzureRmScheduledQueryRulesAznsAction(input *insights.AzNsActionGroup
 		if input.ActionGroup != nil {
 			v["action_group"] = *input.ActionGroup
 		}
-		v["custom_webhook_payload"] = *input.CustomWebhookPayload
-		v["email_subject"] = *input.EmailSubject
+		v["email_subject"] = input.EmailSubject
+		v["custom_webhook_payload"] = input.CustomWebhookPayload
 	}
 	result = append(result, v)
 
@@ -565,9 +565,8 @@ func flattenAzureRmScheduledQueryRulesCriteria(input *[]insights.Criteria) []int
 	if input != nil {
 		for _, criteria := range *input {
 			v := make(map[string]interface{})
-			dimension := make(map[string]interface{})
 
-			v["dimension"] = dimension
+			v["dimension"] = flattenAzureRmScheduledQueryRulesDimension(criteria.Dimensions)
 			v["metric_name"] = *criteria.MetricName
 
 			result = append(result, v)
@@ -575,6 +574,28 @@ func flattenAzureRmScheduledQueryRulesCriteria(input *[]insights.Criteria) []int
 	}
 
 	return result
+}
+
+func flattenAzureRmScheduledQueryRulesDimension(input *[]insights.Dimension) []interface{} {
+	result := make([]interface{}, 0)
+
+	if input != nil {
+		for _, dimension := range *input {
+			v := make(map[string]interface{})
+			v["name"] = *dimension.Name
+			v["operator"] = *dimension.Operator
+			v["values"] = dimension.Values
+
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+func flattenAzureRmScheduledQueryRulesMetricTrigger(input *insights.MetricTrigger) []interface{} {
+	result := make(map[string]interface{})
+	return &result
 }
 
 func flattenAzureRmScheduledQueryRulesSchedule(input *insights.Schedule) []interface{} {
@@ -616,7 +637,7 @@ func flattenAzureRmScheduledQueryRulesTrigger(input *insights.TriggerCondition) 
 	result := make(map[string]interface{})
 
 	if input.MetricTrigger != nil {
-		result["metric_trigger"] = *input.MetricTrigger
+		result["metric_trigger"] = flattenAzureRmScheduledQueryRulesMetricTrigger(input.MetricTrigger)
 	}
 	if input.ThresholdOperator != "" {
 		result["operator"] = input.ThresholdOperator
